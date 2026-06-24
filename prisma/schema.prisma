@@ -1,0 +1,108 @@
+// Golf Handicap Tracker — Prisma schema
+// SQLite for zero-config local persistence. The 18-element arrays
+// (hole pars / stroke index / yardages) are stored as JSON strings
+// because SQLite has no native array type; see src/lib/holes.ts helpers.
+// Data model is single-user today but kept clean to add a User relation later.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Course {
+  id              String   @id @default(cuid())
+  name            String
+  location        String?
+  par             Int      @default(72)
+  // JSON-encoded Int[18]
+  holePars        String
+  holeStrokeIndex String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  teeSets TeeSet[]
+  rounds  Round[]
+}
+
+model TeeSet {
+  id           String   @id @default(cuid())
+  courseId     String
+  name         String
+  courseRating Float
+  slopeRating  Int
+  par          Int
+  // JSON-encoded Int[18]
+  yardages     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  course Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  rounds Round[]
+
+  @@index([courseId])
+}
+
+model Round {
+  id         String   @id @default(cuid())
+  datePlayed DateTime
+  courseId   String
+  teeSetId   String
+  pcc        Int      @default(0)
+  notes      String?
+  weather    String?
+  // Derived / cached values, recomputed on write
+  totalStrokes       Int?
+  adjustedGrossScore Int?
+  scoreDifferential  Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  course Course       @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  teeSet TeeSet       @relation(fields: [teeSetId], references: [id], onDelete: Restrict)
+  holes  HoleResult[]
+
+  @@index([courseId])
+  @@index([teeSetId])
+  @@index([datePlayed])
+}
+
+model HoleResult {
+  id          String  @id @default(cuid())
+  roundId     String
+  holeNumber  Int
+  par         Int
+  strokeIndex Int
+  strokes     Int
+  putts       Int
+  girHit      Boolean @default(false)
+  // null for par 3s (no fairway to hit)
+  fairwayHit    Boolean?
+  penalties     Int     @default(0)
+  upDownAttempt Boolean @default(false)
+  upDownSuccess Boolean @default(false)
+  sandAttempt   Boolean @default(false)
+  sandSuccess   Boolean @default(false)
+  driveDistance Int?
+
+  round Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, holeNumber])
+  @@index([roundId])
+}
+
+// Snapshot of the Handicap Index after each round is recorded,
+// so the trend over time can be charted.
+model HandicapSnapshot {
+  id         String   @id @default(cuid())
+  date       DateTime
+  indexValue Float
+  // The round that triggered this recompute (nullable for manual recomputes)
+  roundId   String?
+  createdAt DateTime @default(now())
+
+  @@index([date])
+}
