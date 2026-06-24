@@ -37,6 +37,19 @@ const holeInputSchema = z
     path: ["sandSuccess"],
   });
 
+const shotInputSchema = z.object({
+  holeNumber: z.number().int().min(1).max(18),
+  shotNumber: z.number().int().min(1).max(20),
+  club: z.string().trim().max(40).optional().nullable(),
+  shotType: z.enum(["tee", "approach", "short_game", "bunker", "putt", "penalty"]),
+  startDistanceYards: z.number().int().min(0).max(700).optional().nullable(),
+  endDistanceYards: z.number().int().min(0).max(700).optional().nullable(),
+  startLie: z.string().trim().max(40).optional().nullable(),
+  endLie: z.string().trim().max(40).optional().nullable(),
+  result: z.string().trim().max(40).optional().nullable(),
+  penalty: z.boolean().default(false),
+});
+
 const roundInputSchema = z.object({
   ownerKey: z.string().optional(),
   datePlayed: z.string().min(1),
@@ -46,6 +59,7 @@ const roundInputSchema = z.object({
   notes: z.string().trim().max(2000).optional().nullable(),
   weather: z.string().trim().max(200).optional().nullable(),
   holes: z.array(holeInputSchema).length(18, "All 18 holes are required"),
+  shots: z.array(shotInputSchema).optional(),
 });
 
 export type RoundInput = z.input<typeof roundInputSchema>;
@@ -75,6 +89,21 @@ function buildHoleData(holes: z.infer<typeof roundInputSchema>["holes"]) {
   });
 }
 
+function buildShotData(shots: z.infer<typeof roundInputSchema>["shots"]) {
+  return (shots ?? []).map((s) => ({
+    holeNumber: s.holeNumber,
+    shotNumber: s.shotNumber,
+    club: s.club || null,
+    shotType: s.shotType,
+    startDistanceYards: s.startDistanceYards ?? null,
+    endDistanceYards: s.endDistanceYards ?? null,
+    startLie: s.startLie || null,
+    endLie: s.endLie || null,
+    result: s.result || null,
+    penalty: s.penalty,
+  }));
+}
+
 export async function createRound(input: RoundInput): Promise<RoundResult> {
   const parsed = roundInputSchema.safeParse(input);
   if (!parsed.success) {
@@ -92,6 +121,7 @@ export async function createRound(input: RoundInput): Promise<RoundResult> {
   }
 
   const holeData = buildHoleData(data.holes);
+  const shotData = buildShotData(data.shots);
   const totalStrokes = holeData.reduce((sum, h) => sum + h.strokes, 0);
 
   const round = await prisma.round.create({
@@ -104,6 +134,7 @@ export async function createRound(input: RoundInput): Promise<RoundResult> {
       weather: data.weather || null,
       totalStrokes,
       holes: { create: holeData },
+      shots: shotData.length ? { create: shotData } : undefined,
     },
   });
 
@@ -133,9 +164,11 @@ export async function updateRound(
   }
 
   const holeData = buildHoleData(data.holes);
+  const shotData = buildShotData(data.shots);
   const totalStrokes = holeData.reduce((sum, h) => sum + h.strokes, 0);
 
   await prisma.$transaction([
+    prisma.shot.deleteMany({ where: { roundId: id } }),
     prisma.holeResult.deleteMany({ where: { roundId: id } }),
     prisma.round.update({
       where: { id },
@@ -148,6 +181,7 @@ export async function updateRound(
         weather: data.weather || null,
         totalStrokes,
         holes: { create: holeData },
+        shots: shotData.length ? { create: shotData } : undefined,
       },
     }),
   ]);

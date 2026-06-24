@@ -44,6 +44,7 @@ function round(holes: HoleResultView[]): RoundView {
     adjustedGrossScore: null,
     scoreDifferential: null,
     holes,
+    shots: [],
   };
 }
 

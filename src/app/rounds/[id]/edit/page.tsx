@@ -58,6 +58,18 @@ export default async function EditRoundPage({
       sandSuccess: h.sandSuccess,
       driveDistance: h.driveDistance,
     })),
+    shots: round.shots.map((s) => ({
+      holeNumber: s.holeNumber,
+      shotNumber: s.shotNumber,
+      club: s.club,
+      shotType: s.shotType,
+      startDistanceYards: s.startDistanceYards,
+      endDistanceYards: s.endDistanceYards,
+      startLie: s.startLie,
+      endLie: s.endLie,
+      result: s.result,
+      penalty: s.penalty,
+    })),
   };
 
   return (

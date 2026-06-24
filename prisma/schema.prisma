@@ -65,10 +65,34 @@ model Round {
   course Course       @relation(fields: [courseId], references: [id], onDelete: Restrict)
   teeSet TeeSet       @relation(fields: [teeSetId], references: [id], onDelete: Restrict)
   holes  HoleResult[]
+  shots  Shot[]
 
   @@index([courseId])
   @@index([teeSetId])
   @@index([datePlayed])
+}
+
+model Shot {
+  id                 String  @id @default(cuid())
+  roundId            String
+  holeNumber         Int
+  shotNumber         Int
+  club               String?
+  shotType           String  // tee | approach | short_game | bunker | putt | penalty
+  startDistanceYards Int?
+  endDistanceYards   Int?
+  startLie           String?
+  endLie             String?
+  result             String?
+  penalty            Boolean @default(false)
+
+  round Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, holeNumber, shotNumber])
+  @@index([roundId])
+  @@index([holeNumber])
+  @@index([club])
+  @@index([shotType])
 }
 
 model HoleResult {

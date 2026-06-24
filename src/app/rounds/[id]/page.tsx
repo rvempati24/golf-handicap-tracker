@@ -5,7 +5,8 @@ import { Button, Card, PageHeader } from "@/components/ui";
 import { OwnerKeyHiddenInput } from "@/components/OwnerKeyField";
 import { toParLabel } from "@/lib/scoring";
 import { deleteRound } from "../actions";
-import type { HoleResultView } from "@/lib/rounds";
+import type { HoleResultView, ShotView } from "@/lib/rounds";
+import { buildTimeline, type ShotType } from "@/lib/shots";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,70 @@ function NineTable({ holes, label }: { holes: HoleResultView[]; label: string })
           </tr>
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function ShotLog({ shots }: { shots: ShotView[] }) {
+  const byHole = new Map<number, ShotView[]>();
+  for (const shot of shots) {
+    const list = byHole.get(shot.holeNumber) ?? [];
+    list.push(shot);
+    byHole.set(shot.holeNumber, list);
+  }
+
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      {Array.from(byHole.entries()).map(([holeNumber, holeShots]) => {
+        const timeline = buildTimeline(
+          [...holeShots]
+            .sort((a, b) => a.shotNumber - b.shotNumber)
+            .map((s) => ({
+              shotType: (["tee", "approach", "short_game", "bunker", "putt"].includes(
+                s.shotType,
+              )
+                ? s.shotType
+                : "approach") as ShotType,
+              club: s.club,
+              outcome: s.result,
+              distance: s.startDistanceYards,
+              penalty: s.penalty,
+            })),
+        );
+        return (
+          <Card key={holeNumber} className="p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Hole {holeNumber}</h3>
+              <span className="text-xs text-muted">
+                {timeline.length} stroke{timeline.length === 1 ? "" : "s"}
+              </span>
+            </div>
+            <ol className="flex flex-col gap-2">
+              {timeline.map((e, idx) => (
+                <li key={idx} className="flex items-baseline gap-3 text-sm">
+                  <span
+                    className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-semibold tabular-nums ${
+                      e.kind === "penalty"
+                        ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
+                        : "bg-accent-soft text-accent"
+                    }`}
+                  >
+                    {e.strokeNo}
+                  </span>
+                  <span
+                    className={
+                      e.kind === "penalty" ? "text-red-600 dark:text-red-400" : ""
+                    }
+                  >
+                    <span className="font-medium">{e.title}</span>
+                    {e.detail && <span className="text-muted"> — {e.detail}</span>}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </Card>
+        );
+      })}
     </div>
   );
 }
@@ -178,6 +243,13 @@ export default async function RoundDetailPage({
           {stat("Doubles+", String(doubles))}
         </div>
       </section>
+
+      {round.shots.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-lg font-medium">Shot log</h2>
+          <ShotLog shots={round.shots} />
+        </section>
+      )}
 
       {round.notes && (
         <section>

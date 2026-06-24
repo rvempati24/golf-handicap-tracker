@@ -16,6 +16,19 @@ export type HoleResultView = {
   driveDistance: number | null;
 };
 
+export type ShotView = {
+  holeNumber: number;
+  shotNumber: number;
+  club: string | null;
+  shotType: string;
+  startDistanceYards: number | null;
+  endDistanceYards: number | null;
+  startLie: string | null;
+  endLie: string | null;
+  result: string | null;
+  penalty: boolean;
+};
+
 export type RoundView = {
   id: string;
   datePlayed: Date;
@@ -33,12 +46,14 @@ export type RoundView = {
   adjustedGrossScore: number | null;
   scoreDifferential: number | null;
   holes: HoleResultView[];
+  shots: ShotView[];
 };
 
 const roundInclude = {
   course: true,
   teeSet: true,
   holes: { orderBy: { holeNumber: "asc" as const } },
+  shots: { orderBy: [{ holeNumber: "asc" as const }, { shotNumber: "asc" as const }] },
 };
 
 function toRoundView(r: {
@@ -55,6 +70,7 @@ function toRoundView(r: {
   course: { name: string };
   teeSet: { name: string; courseRating: number; slopeRating: number; par: number };
   holes: HoleResultView[];
+  shots: ShotView[];
 }): RoundView {
   return {
     id: r.id,
@@ -73,6 +89,7 @@ function toRoundView(r: {
     adjustedGrossScore: r.adjustedGrossScore,
     scoreDifferential: r.scoreDifferential,
     holes: r.holes,
+    shots: r.shots,
   };
 }
 
