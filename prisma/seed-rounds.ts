@@ -4,6 +4,7 @@
 import { PrismaClient } from "@prisma/client";
 import { parseHoleArray } from "../src/lib/holes";
 import { deriveGir } from "../src/lib/scoring";
+import { recomputeHandicap } from "../src/lib/handicap";
 
 const prisma = new PrismaClient();
 
@@ -110,6 +111,9 @@ async function main() {
       `Round ${r + 1}/${count}: ${datePlayed.toISOString().slice(0, 10)} — ${totalStrokes}`,
     );
   }
+
+  const index = await recomputeHandicap();
+  console.log(`Recomputed handicap. Index: ${index ?? "not established"}`);
 }
 
 main()

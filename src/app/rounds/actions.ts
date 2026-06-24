@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { deriveGir } from "@/lib/scoring";
-// NOTE: recomputeHandicap() is wired in at the marked call sites in milestone 3.
+import { recomputeHandicap } from "@/lib/handicap";
 
 const holeInputSchema = z
   .object({
@@ -102,9 +102,10 @@ export async function createRound(input: RoundInput): Promise<RoundResult> {
     },
   });
 
-  // M3: await recomputeHandicap();
+  await recomputeHandicap();
   revalidatePath("/rounds");
   revalidatePath("/");
+  revalidatePath("/stats");
   return { ok: true, id: round.id };
 }
 
@@ -143,10 +144,11 @@ export async function updateRound(
     }),
   ]);
 
-  // M3: await recomputeHandicap();
+  await recomputeHandicap();
   revalidatePath("/rounds");
   revalidatePath(`/rounds/${id}`);
   revalidatePath("/");
+  revalidatePath("/stats");
   return { ok: true, id };
 }
 
@@ -154,8 +156,9 @@ export async function deleteRound(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await prisma.round.delete({ where: { id } });
-  // M3: await recomputeHandicap();
+  await recomputeHandicap();
   revalidatePath("/rounds");
   revalidatePath("/");
+  revalidatePath("/stats");
   redirect("/rounds");
 }

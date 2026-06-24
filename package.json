@@ -12,6 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset --force",
     "db:seed": "tsx prisma/seed.ts",
+    "db:recompute": "tsx prisma/recompute.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate"
   },

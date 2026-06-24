@@ -142,7 +142,9 @@ export default async function RoundDetailPage({
               : "—"}
           </span>
           {round.scoreDifferential == null && (
-            <span className="text-[10px] text-muted">computed in milestone 3</span>
+            <span className="text-[10px] text-muted">
+              available once recomputed
+            </span>
           )}
         </Card>
       </div>
