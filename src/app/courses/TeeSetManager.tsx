@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button, Card } from "@/components/ui";
+import { OwnerKeyHiddenInput } from "@/components/OwnerKeyField";
 import type { TeeSetView } from "@/lib/courses";
 import TeeSetForm from "./TeeSetForm";
 import { createTeeSet, updateTeeSet, deleteTeeSet } from "./actions";
@@ -54,6 +55,7 @@ export default function TeeSetManager({
                 Edit
               </Button>
               <form action={deleteTeeSet}>
+                <OwnerKeyHiddenInput />
                 <input type="hidden" name="id" value={t.id} />
                 <input type="hidden" name="courseId" value={courseId} />
                 <Button variant="danger" type="submit">

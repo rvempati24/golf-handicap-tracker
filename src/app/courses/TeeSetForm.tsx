@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui";
+import { OwnerKeyField } from "@/components/OwnerKeyField";
 import { HOLE_COUNT } from "@/lib/holes";
 import type { ActionState } from "./actions";
 import type { TeeSetView } from "@/lib/courses";
@@ -32,6 +33,7 @@ export default function TeeSetForm({ courseId, action, initial }: Props) {
     <form action={formAction} className="flex flex-col gap-3">
       <input type="hidden" name="courseId" value={courseId} />
       {initial?.id && <input type="hidden" name="id" value={initial.id} />}
+      <OwnerKeyField />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <label className="col-span-2 flex flex-col gap-1 text-sm sm:col-span-1">

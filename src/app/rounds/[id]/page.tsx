@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getRound } from "@/lib/rounds";
 import { Button, Card, PageHeader } from "@/components/ui";
+import { OwnerKeyHiddenInput } from "@/components/OwnerKeyField";
 import { toParLabel } from "@/lib/scoring";
 import { deleteRound } from "../actions";
 import type { HoleResultView } from "@/lib/rounds";
@@ -192,6 +193,7 @@ export default async function RoundDetailPage({
           <Button variant="ghost">Edit round</Button>
         </Link>
         <form action={deleteRound}>
+          <OwnerKeyHiddenInput />
           <input type="hidden" name="id" value={round.id} />
           <Button variant="danger" type="submit">
             Delete

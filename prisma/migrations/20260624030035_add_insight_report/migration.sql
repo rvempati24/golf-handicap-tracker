@@ -5,7 +5,7 @@ CREATE TABLE "InsightReport" (
     "question" TEXT,
     "content" TEXT NOT NULL,
     "model" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- CreateIndex

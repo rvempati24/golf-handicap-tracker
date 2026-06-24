@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button, Card } from "@/components/ui";
+import { OwnerKeyField } from "@/components/OwnerKeyField";
 import { HOLE_COUNT } from "@/lib/holes";
 import type { ActionState } from "./actions";
 
@@ -47,6 +48,7 @@ export default function CourseForm({ action, initial }: Props) {
       {initial?.id && <input type="hidden" name="id" value={initial.id} />}
 
       <Card className="flex flex-col gap-3">
+        <OwnerKeyField />
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Course name</span>
           <input

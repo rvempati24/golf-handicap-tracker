@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { deriveGir } from "@/lib/scoring";
 import { recomputeHandicap } from "@/lib/handicap";
+import { formOwnerKey, isOwnerKeyValid, ownerKeyError } from "@/lib/owner-key";
 
 const holeInputSchema = z
   .object({
@@ -37,6 +38,7 @@ const holeInputSchema = z
   });
 
 const roundInputSchema = z.object({
+  ownerKey: z.string().optional(),
   datePlayed: z.string().min(1),
   courseId: z.string().min(1, "Pick a course"),
   teeSetId: z.string().min(1, "Pick a tee set"),
@@ -78,6 +80,9 @@ export async function createRound(input: RoundInput): Promise<RoundResult> {
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
+  if (!isOwnerKeyValid(parsed.data.ownerKey)) {
+    return { ok: false, error: ownerKeyError() };
+  }
   const data = parsed.data;
 
   // Verify the tee set belongs to the course.
@@ -117,6 +122,9 @@ export async function updateRound(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
+  if (!isOwnerKeyValid(parsed.data.ownerKey)) {
+    return { ok: false, error: ownerKeyError() };
+  }
   const data = parsed.data;
 
   const teeSet = await prisma.teeSet.findUnique({ where: { id: data.teeSetId } });
@@ -153,6 +161,9 @@ export async function updateRound(
 }
 
 export async function deleteRound(formData: FormData): Promise<void> {
+  if (!isOwnerKeyValid(formOwnerKey(formData))) {
+    redirect(`/rounds?error=${encodeURIComponent(ownerKeyError())}`);
+  }
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await prisma.round.delete({ where: { id } });

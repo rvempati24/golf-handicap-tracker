@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card } from "@/components/ui";
 import { ChevronDown, MoreHorizontalIcon, TargetIcon } from "@/components/icons";
+import { OwnerKeyField, useOwnerKey } from "@/components/OwnerKeyField";
 import { deriveGir, toParLabel } from "@/lib/scoring";
 import type { RoundInput } from "./actions";
 
@@ -172,6 +173,7 @@ export default function RoundForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const { ownerKey, setOwnerKey } = useOwnerKey();
 
   const [courseId, setCourseId] = useState(initial?.courseId ?? courses[0]?.id ?? "");
   const course = courses.find((c) => c.id === courseId);
@@ -295,6 +297,7 @@ export default function RoundForm({
         return { ok: false, error: `Hole ${i + 1}: putts cannot exceed strokes.` };
     }
     const input: RoundInput = {
+      ownerKey,
       datePlayed: date,
       courseId,
       teeSetId,
@@ -648,6 +651,9 @@ export default function RoundForm({
       </Card>
 
       <Card className="grid gap-3 md:grid-cols-[1fr_12rem]">
+        <div className="md:col-span-2">
+          <OwnerKeyField value={ownerKey} onValueChange={setOwnerKey} />
+        </div>
         <RoundField label="Notes">
           <textarea
             value={notes}

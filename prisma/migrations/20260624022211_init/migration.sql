@@ -6,8 +6,8 @@ CREATE TABLE "Course" (
     "par" INTEGER NOT NULL DEFAULT 72,
     "holePars" TEXT NOT NULL,
     "holeStrokeIndex" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL
 );
 
 -- CreateTable
@@ -15,19 +15,19 @@ CREATE TABLE "TeeSet" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "courseId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "courseRating" REAL NOT NULL,
+    "courseRating" DOUBLE PRECISION NOT NULL,
     "slopeRating" INTEGER NOT NULL,
     "par" INTEGER NOT NULL,
     "yardages" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "TeeSet_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "Round" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "datePlayed" DATETIME NOT NULL,
+    "datePlayed" TIMESTAMP(3) NOT NULL,
     "courseId" TEXT NOT NULL,
     "teeSetId" TEXT NOT NULL,
     "pcc" INTEGER NOT NULL DEFAULT 0,
@@ -35,9 +35,9 @@ CREATE TABLE "Round" (
     "weather" TEXT,
     "totalStrokes" INTEGER,
     "adjustedGrossScore" INTEGER,
-    "scoreDifferential" REAL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "scoreDifferential" DOUBLE PRECISION,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "Round_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Round_teeSetId_fkey" FOREIGN KEY ("teeSetId") REFERENCES "TeeSet" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
@@ -65,10 +65,10 @@ CREATE TABLE "HoleResult" (
 -- CreateTable
 CREATE TABLE "HandicapSnapshot" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "date" DATETIME NOT NULL,
-    "indexValue" REAL NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL,
+    "indexValue" DOUBLE PRECISION NOT NULL,
     "roundId" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- CreateIndex

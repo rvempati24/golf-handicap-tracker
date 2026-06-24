@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { formOwnerKey, isOwnerKeyValid, ownerKeyError } from "@/lib/owner-key";
 import {
   HOLE_COUNT,
   isValidStrokeIndex,
@@ -47,6 +48,9 @@ export async function createCourse(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!isOwnerKeyValid(formOwnerKey(formData))) {
+    return { ok: false, error: ownerKeyError() };
+  }
   const { pars, si } = parseHoleFields(formData);
   const parsed = courseSchema.safeParse({
     name: formData.get("name"),
@@ -78,6 +82,9 @@ export async function updateCourse(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!isOwnerKeyValid(formOwnerKey(formData))) {
+    return { ok: false, error: ownerKeyError() };
+  }
   const id = String(formData.get("id") ?? "");
   if (!id) return { ok: false, error: "Missing course id" };
   const { pars, si } = parseHoleFields(formData);
@@ -110,6 +117,9 @@ export async function updateCourse(
 }
 
 export async function deleteCourse(formData: FormData): Promise<void> {
+  if (!isOwnerKeyValid(formOwnerKey(formData))) {
+    redirect(`/courses?error=${encodeURIComponent(ownerKeyError())}`);
+  }
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   const roundCount = await prisma.round.count({ where: { courseId: id } });
@@ -141,6 +151,9 @@ async function upsertTeeSet(
   formData: FormData,
   id: string | null,
 ): Promise<ActionState> {
+  if (!isOwnerKeyValid(formOwnerKey(formData))) {
+    return { ok: false, error: ownerKeyError() };
+  }
   const hasYardages = formData.get("yardages_0") != null;
   let yardages: number[] | undefined;
   if (hasYardages) {
@@ -182,6 +195,10 @@ async function upsertTeeSet(
 }
 
 export async function deleteTeeSet(formData: FormData): Promise<void> {
+  if (!isOwnerKeyValid(formOwnerKey(formData))) {
+    const courseId = String(formData.get("courseId") ?? "");
+    redirect(`/courses/${courseId}?error=${encodeURIComponent(ownerKeyError())}`);
+  }
   const id = String(formData.get("id") ?? "");
   const courseId = String(formData.get("courseId") ?? "");
   if (!id) return;

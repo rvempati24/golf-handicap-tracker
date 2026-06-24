@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getCourse } from "@/lib/courses";
 import { Button, Card, PageHeader } from "@/components/ui";
+import { OwnerKeyHiddenInput } from "@/components/OwnerKeyField";
 import CourseForm from "../CourseForm";
 import TeeSetManager from "../TeeSetManager";
 import { deleteCourse, updateCourse } from "../actions";
@@ -69,6 +70,7 @@ export default async function CourseDetailPage({
             </p>
           </div>
           <form action={deleteCourse}>
+            <OwnerKeyHiddenInput />
             <input type="hidden" name="id" value={course.id} />
             <Button
               variant="danger"

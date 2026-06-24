@@ -8,9 +8,10 @@ coaching insights from your data.
 ## Stack
 
 - **Next.js (App Router) + TypeScript + Tailwind CSS v4**
-- **Prisma + SQLite** (single-file, zero-config DB; easy to move to Postgres later)
+- **Prisma + Postgres** (Neon-ready)
 - **Recharts** for trend charts
-- **Anthropic API** (`@anthropic-ai/sdk`) for AI insights
+- **Google Gemini API** (`@google/genai`) for AI insights
+- Simple owner-key write gate for single-user score/course entry
 
 ## Getting started
 
@@ -21,13 +22,16 @@ npm install
 # 2. Set up env (copy the example, then fill in values)
 cp .env.example .env
 
-# 3. Create the database and apply migrations
+# 3. Create a Postgres database, then set DATABASE_URL and DIRECT_URL in .env
+# Neon works well. Use pooled URL for DATABASE_URL and non-pooled URL for DIRECT_URL.
+
+# 4. Apply migrations
 npm run db:migrate
 
-# 4. Seed a starter course (Coyote Crossing Golf Club)
+# 5. Seed a starter course (Coyote Crossing Golf Club)
 npm run db:seed
 
-# 5. Run the dev server
+# 6. Run the dev server
 npm run dev
 ```
 
@@ -37,8 +41,32 @@ Open http://localhost:3000.
 
 | Variable            | Required        | Purpose                                              |
 | ------------------- | --------------- | ---------------------------------------------------- |
-| `DATABASE_URL`      | yes             | SQLite file location (default `file:./dev.db`)       |
-| `ANTHROPIC_API_KEY` | for AI Insights | Anthropic API key. **Never hardcode** — env only.    |
+| `DATABASE_URL`      | yes             | Runtime Postgres connection string, usually pooled Neon |
+| `DIRECT_URL`        | yes             | Direct/non-pooled Postgres URL for Prisma migrations |
+| `OWNER_WRITE_KEY`   | yes for writes  | Private key required to create/edit/delete data      |
+| `GEMINI_API_KEY`    | for AI Insights | Gemini API key. **Never hardcode** — env only.       |
+
+## Deploying to Vercel + Neon
+
+1. Create a Neon project and copy the Postgres connection string.
+2. In Vercel, import this GitHub repo.
+3. Add environment variables in Vercel:
+   - `DATABASE_URL`: Neon pooled connection string, typically with `?sslmode=require`
+   - `DIRECT_URL`: Neon direct/non-pooled connection string for the same database
+   - `OWNER_WRITE_KEY`: a long private string only you know
+   - `GEMINI_API_KEY`: optional, only needed for AI insights
+4. Deploy. `vercel.json` makes Vercel run `npm run vercel-build`, which applies Prisma migrations with `prisma migrate deploy` before `next build`.
+5. Seed the starter course against Neon once:
+
+```bash
+DATABASE_URL="postgresql://USER:PASSWORD@POOLED_HOST/DB?sslmode=require" \
+DIRECT_URL="postgresql://USER:PASSWORD@DIRECT_HOST/DB?sslmode=require" \
+npm run db:seed
+```
+
+After deploy, public visitors can view the tracker, but write actions require
+the owner key. Enter it in the app once; the browser stores it locally and sends
+it with create/edit/delete requests.
 
 ## Scripts
 
@@ -46,6 +74,7 @@ Open http://localhost:3000.
 | ------------------ | ---------------------------------------- |
 | `npm run dev`      | Start the dev server                     |
 | `npm run build`    | Production build                         |
+| `npm run vercel-build` | Apply production migrations, then build |
 | `npm run test`     | Run unit tests (Vitest)                  |
 | `npm run db:migrate` | Apply Prisma migrations (dev)          |
 | `npm run db:reset` | Drop, re-migrate, and re-seed the DB     |
@@ -70,7 +99,7 @@ npx tsx prisma/seed-rounds.ts --reset 0   # delete all rounds + snapshots
 `HandicapSnapshot` records the Index after each round for trend charting.
 
 The 18-element per-hole arrays (pars, stroke index, yardages) are stored as
-JSON strings because SQLite has no native array type; see `src/lib/holes.ts`.
+JSON strings to keep course import/export simple; see `src/lib/holes.ts`.
 
 ## Build progress
 

@@ -1,7 +1,7 @@
 // Golf Handicap Tracker — Prisma schema
-// SQLite for zero-config local persistence. The 18-element arrays
-// (hole pars / stroke index / yardages) are stored as JSON strings
-// because SQLite has no native array type; see src/lib/holes.ts helpers.
+// Postgres-backed for Neon/Vercel deployment. The 18-element arrays
+// (hole pars / stroke index / yardages) are stored as JSON strings to keep
+// course import/export simple; see src/lib/holes.ts helpers.
 // Data model is single-user today but kept clean to add a User relation later.
 
 generator client {
@@ -9,8 +9,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Course {
