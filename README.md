@@ -67,7 +67,7 @@ JSON strings because SQLite has no native array type; see `src/lib/holes.ts`.
 - [x] **M2** — Round scorecard entry + history
 - [x] **M3** — WHS handicap engine + unit tests
 - [x] **M4** — Stats engine + dashboard + trend charts
-- [ ] **M5** — AI insights + ask-about-my-game
+- [x] **M5** — AI insights + ask-about-my-game
 - [ ] **M6** — Validation, error states, polish
 
 ## Handicap method

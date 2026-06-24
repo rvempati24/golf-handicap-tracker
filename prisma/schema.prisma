@@ -94,6 +94,19 @@ model HoleResult {
   @@index([roundId])
 }
 
+// A stored AI generation (coaching insight or ad-hoc question answer),
+// kept with a timestamp so advice can be reviewed as it evolves.
+model InsightReport {
+  id        String   @id @default(cuid())
+  kind      String   // "insight" | "question"
+  question  String?  // set for ad-hoc "ask about my game" answers
+  content   String   // JSON (structured insight) or plain text (answer)
+  model     String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 // Snapshot of the Handicap Index after each round is recorded,
 // so the trend over time can be charted.
 model HandicapSnapshot {

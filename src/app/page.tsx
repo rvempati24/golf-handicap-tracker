@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getRounds } from "@/lib/rounds";
 import { getHandicapState } from "@/lib/handicap";
+import { getInsightReports } from "@/lib/insights";
 import { computeStats } from "@/lib/stats";
 import { fmtIndex, fmtNum, fmtPct } from "@/lib/format";
 import {
@@ -16,7 +17,12 @@ import { MIN_ROUNDS_TO_ESTABLISH } from "@/lib/whs";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [rounds, hcp] = await Promise.all([getRounds(), getHandicapState()]);
+  const [rounds, hcp, insightReports] = await Promise.all([
+    getRounds(),
+    getHandicapState(),
+    getInsightReports(5),
+  ]);
+  const latestInsight = insightReports.find((r) => r.kind === "insight");
 
   if (rounds.length === 0) {
     return (
@@ -112,20 +118,30 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* Latest insight (M5) */}
-      <Card className="flex items-center justify-between gap-3">
-        <div>
+      {/* Latest insight */}
+      <Card className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-3">
           <p className="font-medium">AI coaching insights</p>
-          <p className="text-sm text-muted">
-            Get weaknesses, what&apos;s improving, and practice priorities from
-            your data.
-          </p>
+          <Link href="/insights" className="text-sm font-medium text-accent">
+            Open →
+          </Link>
         </div>
-        <Link href="/insights">
-          <span className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-accent-fg">
-            Open
-          </span>
-        </Link>
+        {latestInsight && latestInsight.kind === "insight" ? (
+          <div>
+            <p className="text-sm">{latestInsight.insight.headline}</p>
+            {latestInsight.insight.weaknesses[0] && (
+              <p className="mt-1 text-xs text-muted">
+                Top focus: {latestInsight.insight.weaknesses[0].area} —{" "}
+                {latestInsight.insight.weaknesses[0].impactSummary}
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-muted">
+            Generate weaknesses, what&apos;s improving, and practice priorities
+            from your data.
+          </p>
+        )}
       </Card>
     </div>
   );
