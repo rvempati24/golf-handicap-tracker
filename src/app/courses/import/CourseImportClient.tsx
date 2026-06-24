@@ -148,7 +148,7 @@ export default function CourseImportClient() {
     startImport(async () => {
       const res = await importCourseFromApi({
         ownerKey,
-        courseId: selectedCourse.id,
+        course: selectedCourse,
         gender: selectedTee.gender,
         teeIndex: selectedTee.teeIndex,
       });
@@ -376,7 +376,7 @@ export default function CourseImportClient() {
 
       <p className="text-sm text-muted">
         Cannot find the course?{" "}
-        <Link href="/courses/new" className="font-medium text-accent">
+        <Link href="/courses/manual" className="font-medium text-accent">
           Add it manually
         </Link>
         .

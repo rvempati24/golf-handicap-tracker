@@ -56,7 +56,7 @@ export default function Nav() {
           <Link href="/" className="mr-4 flex items-center gap-2.5">
             <BrandMark />
             <span className="text-[15px] font-semibold tracking-tight">
-              Golf Tracker
+              Rishab Golf
             </span>
           </Link>
           <div className="flex flex-1 items-center gap-1">
@@ -85,7 +85,7 @@ export default function Nav() {
       <div className="sticky top-0 z-20 flex items-center gap-2.5 border-b border-border/70 bg-background/80 px-4 py-3 backdrop-blur-md sm:hidden">
         <BrandMark />
         <span className="text-[15px] font-semibold tracking-tight">
-          Golf Tracker
+          Rishab Golf
         </span>
       </div>
 

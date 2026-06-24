@@ -21,7 +21,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Golf Tracker",
+  title: "Rishab Golf",
   description: "Personal WHS handicap & performance tracker",
 };
 

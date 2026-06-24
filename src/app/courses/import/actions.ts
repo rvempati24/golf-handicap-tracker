@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { serializeHoleArray } from "@/lib/holes";
 import {
-  getGolfCourse,
   searchGolfCourses,
   type ImportableCourse,
 } from "@/lib/golf-course-api";
@@ -26,7 +25,7 @@ const searchSchema = z.object({
 
 const importSchema = z.object({
   ownerKey: z.string().optional(),
-  courseId: z.number().int().positive(),
+  course: z.custom<ImportableCourse>(),
   gender: z.enum(["male", "female"]),
   teeIndex: z.number().int().min(0),
 });
@@ -66,8 +65,10 @@ export async function importCourseFromApi(
   }
 
   try {
-    const course = await getGolfCourse(parsed.data.courseId);
-    if (!course) return { ok: false, error: "Course not found." };
+    const course = parsed.data.course;
+    if (!course?.id || !course.name || !Array.isArray(course.tees)) {
+      return { ok: false, error: "Course not found." };
+    }
 
     const tee = course.tees.find(
       (t) =>

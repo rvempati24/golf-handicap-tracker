@@ -20,10 +20,10 @@ export default async function CoursesPage({
         subtitle="Manage courses and their tee sets"
         action={
           <div className="flex gap-2">
-            <LinkButton href="/courses/import">
-              Import
+            <LinkButton href="/courses/new">
+              Add course
             </LinkButton>
-            <LinkButton href="/courses/new" variant="ghost">
+            <LinkButton href="/courses/manual" variant="ghost">
               Manual add
             </LinkButton>
           </div>
@@ -43,8 +43,8 @@ export default async function CoursesPage({
           description="Import a course with tee sets to start logging rounds."
           action={
             <div className="flex gap-2">
-              <LinkButton href="/courses/import">Import course</LinkButton>
-              <LinkButton href="/courses/new" variant="ghost">
+              <LinkButton href="/courses/new">Import course</LinkButton>
+              <LinkButton href="/courses/manual" variant="ghost">
                 Manual add
               </LinkButton>
             </div>
