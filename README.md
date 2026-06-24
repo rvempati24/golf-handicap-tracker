@@ -50,7 +50,18 @@ Open http://localhost:3000.
 | `npm run db:migrate` | Apply Prisma migrations (dev)          |
 | `npm run db:reset` | Drop, re-migrate, and re-seed the DB     |
 | `npm run db:seed`  | Seed the starter course                  |
+| `npm run db:recompute` | Recompute all differentials + handicap trend |
 | `npm run db:studio`| Open Prisma Studio                       |
+
+### Sample data (development)
+
+`npx tsx prisma/seed-rounds.ts [count]` generates synthetic rounds so the
+handicap, stats, and insights features have data to work with (it also runs the
+handicap recompute). Clear them when you're ready to track real rounds:
+
+```bash
+npx tsx prisma/seed-rounds.ts --reset 0   # delete all rounds + snapshots
+```
 
 ## Data model
 
@@ -68,7 +79,15 @@ JSON strings because SQLite has no native array type; see `src/lib/holes.ts`.
 - [x] **M3** — WHS handicap engine + unit tests
 - [x] **M4** — Stats engine + dashboard + trend charts
 - [x] **M5** — AI insights + ask-about-my-game
-- [ ] **M6** — Validation, error states, polish
+- [x] **M6** — Validation, error states, polish
+
+## Testing
+
+`npm run test` runs the Vitest suite. The handicap engine
+(`src/lib/whs.test.ts`) is validated against the USGA worked example and the
+WHS edge cases (3 / 6 / 19 / 20 rounds, Net Double Bogey capping, the Par + 5
+cap before an Index is established). The stats engine has its own tests in
+`src/lib/stats.test.ts`.
 
 ## Handicap method
 
