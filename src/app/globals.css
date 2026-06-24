@@ -1,43 +1,84 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f7f5;
+  --background: #f8f9f6;
   --surface: #ffffff;
-  --foreground: #14241a;
-  --muted: #5b6b60;
-  --border: #e2e6e1;
-  --accent: #15803d;
+  --surface-2: #f1f4ef;
+  --foreground: #14231b;
+  --muted: #61706692;
+  --muted-fg: #5d6c63;
+  --border: #e7ebe4;
+  --border-strong: #d6dcd2;
+  --accent: #157f4c;
+  --accent-hover: #126a40;
   --accent-fg: #ffffff;
+  --accent-soft: #157f4c18;
+  --gold: #c08a2d;
+  --ring: #157f4c55;
+  --shadow: 0 1px 2px rgba(20, 35, 27, 0.04), 0 4px 16px rgba(20, 35, 27, 0.05);
+  --shadow-lg: 0 8px 30px rgba(20, 35, 27, 0.1);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
+  --color-muted: var(--muted-fg);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-gold: var(--gold);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0c130f;
-    --surface: #131c16;
-    --foreground: #e8efe9;
-    --muted: #94a89b;
-    --border: #243029;
-    --accent: #22c55e;
-    --accent-fg: #06140b;
+    --background: #0a0f0c;
+    --surface: #111a14;
+    --surface-2: #0d150f;
+    --foreground: #e7efe9;
+    --muted-fg: #8fa096;
+    --border: #1e2922;
+    --border-strong: #2a382f;
+    --accent: #2fc973;
+    --accent-hover: #46d585;
+    --accent-fg: #04140a;
+    --accent-soft: #2fc97320;
+    --gold: #e0b252;
+    --ring: #2fc97355;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.45);
   }
+}
+
+* {
+  border-color: var(--border);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.font-display {
+  font-family: var(--font-display), var(--font-sans), serif;
+  letter-spacing: -0.02em;
+}
+
+.shadow-card {
+  box-shadow: var(--shadow);
+}
+.shadow-pop {
+  box-shadow: var(--shadow-lg);
 }
 
 /* Hide number-input spinners for cleaner scorecard entry */
@@ -48,4 +89,28 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+/* Focus ring */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+  border-color: var(--accent);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.3s ease;
 }

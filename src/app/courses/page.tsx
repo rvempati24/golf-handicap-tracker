@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCourses } from "@/lib/courses";
 import { Card, EmptyState, LinkButton, PageHeader } from "@/components/ui";
+import { ChevronRight, PinIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export default async function CoursesPage({
 
       {courses.length === 0 ? (
         <EmptyState
+          icon={<PinIcon width={22} height={22} />}
           title="No courses yet"
           description="Add a course with its tee sets to start logging rounds."
           action={<LinkButton href="/courses/new">+ Add course</LinkButton>}
@@ -37,8 +39,8 @@ export default async function CoursesPage({
       ) : (
         <div className="flex flex-col gap-3">
           {courses.map((c) => (
-            <Link key={c.id} href={`/courses/${c.id}`}>
-              <Card className="transition hover:border-accent">
+            <Link key={c.id} href={`/courses/${c.id}`} className="group block">
+              <Card className="transition hover:border-border-strong hover:shadow-pop">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h2 className="font-medium">{c.name}</h2>
@@ -47,7 +49,11 @@ export default async function CoursesPage({
                       {c.roundCount === 1 ? "" : "s"}
                     </p>
                   </div>
-                  <span className="text-muted">›</span>
+                  <ChevronRight
+                    width={18}
+                    height={18}
+                    className="text-muted transition group-hover:translate-x-0.5"
+                  />
                 </div>
                 {c.teeSets.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">

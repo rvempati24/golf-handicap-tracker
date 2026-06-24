@@ -8,13 +8,15 @@ import type { HoleResultView } from "@/lib/rounds";
 
 export const dynamic = "force-dynamic";
 
-function scoreClass(strokes: number, par: number): string {
+// Golf-scorecard convention: circles for under par, squares for over par.
+function scoreCellClass(strokes: number, par: number): string {
   const d = strokes - par;
-  if (d <= -2) return "bg-yellow-200 text-yellow-900 dark:bg-yellow-500/30 dark:text-yellow-200";
-  if (d === -1) return "bg-red-100 text-red-700 dark:bg-red-500/25 dark:text-red-200";
-  if (d === 0) return "";
-  if (d === 1) return "bg-sky-100 text-sky-700 dark:bg-sky-500/25 dark:text-sky-200";
-  return "bg-zinc-200 text-zinc-700 dark:bg-zinc-600/40 dark:text-zinc-200";
+  if (d <= -2)
+    return "rounded-full border-2 border-gold text-gold ring-2 ring-gold/40";
+  if (d === -1) return "rounded-full border-2 border-red-500 text-red-600 dark:text-red-300";
+  if (d === 0) return "text-foreground";
+  if (d === 1) return "rounded-md border border-sky-400 text-sky-600 dark:text-sky-300";
+  return "rounded-md border-2 border-zinc-500 text-zinc-600 dark:text-zinc-300";
 }
 
 function NineTable({ holes, label }: { holes: HoleResultView[]; label: string }) {
@@ -48,7 +50,7 @@ function NineTable({ holes, label }: { holes: HoleResultView[]; label: string })
             {holes.map((h) => (
               <td key={h.holeNumber} className="py-0.5">
                 <span
-                  className={`inline-flex h-7 w-7 items-center justify-center rounded-md font-semibold tabular-nums ${scoreClass(h.strokes, h.par)}`}
+                  className={`inline-flex h-7 w-7 items-center justify-center font-semibold tabular-nums ${scoreCellClass(h.strokes, h.par)}`}
                 >
                   {h.strokes}
                 </span>

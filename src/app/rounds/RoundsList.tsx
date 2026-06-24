@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui";
+import { ChevronRight } from "@/components/icons";
 import { toParLabel } from "@/lib/scoring";
 
 export type RoundListItem = {
@@ -53,10 +54,10 @@ export default function RoundsList({ rounds }: { rounds: RoundListItem[] }) {
           <button
             key={k}
             onClick={() => changeSort(k)}
-            className={`rounded-full border px-3 py-1 font-medium capitalize ${
+            className={`rounded-full border px-3 py-1 font-medium capitalize transition ${
               sort === k
-                ? "border-accent text-accent"
-                : "border-border text-muted"
+                ? "border-accent/40 bg-accent-soft text-accent"
+                : "border-border text-muted hover:bg-surface-2"
             }`}
           >
             {k}
@@ -69,10 +70,10 @@ export default function RoundsList({ rounds }: { rounds: RoundListItem[] }) {
         const toPar =
           r.totalStrokes != null ? r.totalStrokes - r.teePar : null;
         return (
-          <Link key={r.id} href={`/rounds/${r.id}`}>
-            <Card className="flex items-center justify-between gap-3 transition hover:border-accent">
-              <div>
-                <p className="font-medium">{r.courseName}</p>
+          <Link key={r.id} href={`/rounds/${r.id}`} className="group block">
+            <Card className="flex items-center gap-3 py-4 transition hover:border-border-strong hover:shadow-pop">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{r.courseName}</p>
                 <p className="text-sm text-muted">
                   {new Date(r.date).toLocaleDateString(undefined, {
                     year: "numeric",
@@ -83,11 +84,11 @@ export default function RoundsList({ rounds }: { rounds: RoundListItem[] }) {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-lg font-semibold tabular-nums">
+                <p className="font-display text-xl font-medium tabular-nums">
                   {r.totalStrokes ?? "—"}
                   {toPar != null && (
                     <span className="ml-1 text-sm font-normal text-muted">
-                      ({toParLabel(toPar)})
+                      {toParLabel(toPar)}
                     </span>
                   )}
                 </p>
@@ -97,6 +98,11 @@ export default function RoundsList({ rounds }: { rounds: RoundListItem[] }) {
                     : "Diff pending"}
                 </p>
               </div>
+              <ChevronRight
+                width={18}
+                height={18}
+                className="text-muted transition group-hover:translate-x-0.5"
+              />
             </Card>
           </Link>
         );
