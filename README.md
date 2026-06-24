@@ -66,7 +66,7 @@ JSON strings because SQLite has no native array type; see `src/lib/holes.ts`.
 - [x] **M1** — Prisma schema, Courses/TeeSets CRUD, Coyote Crossing seed
 - [x] **M2** — Round scorecard entry + history
 - [x] **M3** — WHS handicap engine + unit tests
-- [ ] **M4** — Stats engine + dashboard + trend charts
+- [x] **M4** — Stats engine + dashboard + trend charts
 - [ ] **M5** — AI insights + ask-about-my-game
 - [ ] **M6** — Validation, error states, polish
 
@@ -75,4 +75,16 @@ JSON strings because SQLite has no native array type; see `src/lib/holes.ts`.
 Implements the current WHS method (Score Differential from
 `(113 / Slope) × (AGS − CourseRating − PCC)`, Net Double Bogey adjustment,
 best-N-of-20 selection table). **Not** the pre-2020 "best 10 × 0.96" formula.
-Details and reference tests land in milestone 3.
+The engine lives in `src/lib/whs.ts` (pure functions) with the reference test
+suite in `src/lib/whs.test.ts` (validated against the USGA worked example).
+
+### Feature flags
+
+- `ENABLE_SOFT_HARD_CAP` (`src/lib/handicap.ts`, default **off**) — applies the
+  WHS soft cap (50% suppression of increases >3.0 over the Low Handicap Index)
+  and hard cap (max +5.0) to the trailing-12-month Index trend.
+- `ENABLE_STROKES_GAINED` (`src/lib/stats.ts`, default **on**) — shows a
+  **simplified, approximate** Strokes Gained breakdown (Off-the-Tee / Approach /
+  Short Game / Putting). It is derived from accuracy/scoring stats vs. a
+  mid-handicap baseline, **not** true shot-level Strokes Gained, and is labeled
+  as such in the UI.
