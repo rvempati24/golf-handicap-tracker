@@ -28,7 +28,7 @@ const importSchema = z.object({
   ownerKey: z.string().optional(),
   courseId: z.number().int().positive(),
   gender: z.enum(["male", "female"]),
-  teeName: z.string().min(1),
+  teeIndex: z.number().int().min(0),
 });
 
 function actionError(error: unknown): string {
@@ -70,7 +70,8 @@ export async function importCourseFromApi(
     if (!course) return { ok: false, error: "Course not found." };
 
     const tee = course.tees.find(
-      (t) => t.gender === parsed.data.gender && t.teeName === parsed.data.teeName,
+      (t) =>
+        t.gender === parsed.data.gender && t.teeIndex === parsed.data.teeIndex,
     );
     if (!tee) return { ok: false, error: "Selected tee was not found." };
     if (!tee.importable || tee.courseRating == null || tee.slopeRating == null) {

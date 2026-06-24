@@ -40,6 +40,7 @@ type SearchResponse = {
 
 export type ImportableTee = {
   gender: "male" | "female";
+  teeIndex: number;
   teeName: string;
   courseRating: number | null;
   slopeRating: number | null;
@@ -85,7 +86,11 @@ function locationLabel(course: ApiCourse): string | null {
   return loc.address?.trim() || null;
 }
 
-function normalizeTee(tee: ApiTeeBox, gender: "male" | "female"): ImportableTee {
+function normalizeTee(
+  tee: ApiTeeBox,
+  gender: "male" | "female",
+  teeIndex: number,
+): ImportableTee {
   const holes = Array.isArray(tee.holes)
     ? tee.holes.map((h) => ({
         par: Number(h.par) || 0,
@@ -102,6 +107,7 @@ function normalizeTee(tee: ApiTeeBox, gender: "male" | "female"): ImportableTee 
 
   return {
     gender,
+    teeIndex,
     teeName: tee.tee_name?.trim() || `${gender === "male" ? "Men" : "Women"} tee`,
     courseRating: Number.isFinite(tee.course_rating)
       ? Number(tee.course_rating)
@@ -119,8 +125,10 @@ function normalizeTee(tee: ApiTeeBox, gender: "male" | "female"): ImportableTee 
 function normalizeCourse(course: ApiCourse): ImportableCourse | null {
   if (!Number.isFinite(course.id)) return null;
   const tees = [
-    ...(course.tees?.male ?? []).map((t) => normalizeTee(t, "male" as const)),
-    ...(course.tees?.female ?? []).map((t) => normalizeTee(t, "female" as const)),
+    ...(course.tees?.male ?? []).map((t, i) => normalizeTee(t, "male" as const, i)),
+    ...(course.tees?.female ?? []).map((t, i) =>
+      normalizeTee(t, "female" as const, i),
+    ),
   ];
   return {
     id: Number(course.id),
