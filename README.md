@@ -64,7 +64,7 @@ JSON strings because SQLite has no native array type; see `src/lib/holes.ts`.
 ## Build progress
 
 - [x] **M1** — Prisma schema, Courses/TeeSets CRUD, Coyote Crossing seed
-- [ ] **M2** — Round scorecard entry + history
+- [x] **M2** — Round scorecard entry + history
 - [ ] **M3** — WHS handicap engine + unit tests
 - [ ] **M4** — Stats engine + dashboard + trend charts
 - [ ] **M5** — AI insights + ask-about-my-game
