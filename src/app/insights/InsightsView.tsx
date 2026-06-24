@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button, Card } from "@/components/ui";
+import { WarningIcon } from "@/components/icons";
 import { generateInsights, askQuestion } from "./actions";
 import type { Insight, InsightReportView } from "./actions";
 
@@ -136,10 +137,23 @@ export default function InsightsView({
     <div className="flex flex-col gap-5">
       {!hasApiKey && (
         <Card className="border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40">
-          <p className="text-sm text-amber-800 dark:text-amber-200">
-            ⚠️ <strong>ANTHROPIC_API_KEY is not set.</strong> Add it to your{" "}
-            <code>.env</code> and restart the dev server to enable AI insights.
-          </p>
+          <div className="flex gap-3 text-sm text-amber-800 dark:text-amber-200">
+            <WarningIcon width={18} height={18} className="mt-0.5 shrink-0" />
+            <p>
+              <strong>GEMINI_API_KEY is not set.</strong> Add it to your{" "}
+              <code>.env</code> and restart the dev server to enable AI insights.
+              Get a free key at{" "}
+              <a
+                href="https://aistudio.google.com/apikey"
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                aistudio.google.com/apikey
+              </a>
+              .
+            </p>
+          </div>
         </Card>
       )}
 

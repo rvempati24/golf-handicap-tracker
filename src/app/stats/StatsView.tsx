@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui";
 import { TrendLineChart } from "@/components/charts";
+import { WarningIcon } from "@/components/icons";
 import { fmtNum, fmtPct, fmtSigned } from "@/lib/format";
 import type { StatsSummary, StrokesGained, TrendPoint } from "@/lib/stats";
 
@@ -198,11 +199,14 @@ export default function StatsView({
               </div>
             ))}
           </div>
-          <p className="mt-3 text-xs text-muted">
-            ⚠️ Approximation only. True Strokes Gained requires shot-level
-            distance data and published PGA baselines; this estimate is derived
-            from your accuracy/scoring stats versus a mid-handicap baseline and
-            is directional, not exact.
+          <p className="mt-3 flex gap-2 text-xs text-muted">
+            <WarningIcon width={14} height={14} className="mt-0.5 shrink-0" />
+            <span>
+              Approximation only. True Strokes Gained requires shot-level
+              distance data and published PGA baselines; this estimate is derived
+              from your accuracy/scoring stats versus a mid-handicap baseline and
+              is directional, not exact.
+            </span>
           </p>
         </Card>
       )}

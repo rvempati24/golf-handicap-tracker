@@ -1,14 +1,13 @@
 "use server";
 
-import Anthropic from "@anthropic-ai/sdk";
+import { Type, type Schema } from "@google/genai";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getRounds } from "@/lib/rounds";
 import { getHandicapState } from "@/lib/handicap";
 import {
   buildCoachingPayload,
-  getAnthropicClient,
-  textFromMessage,
+  getGeminiClient,
   MissingApiKeyError,
   COACH_MODEL,
 } from "@/lib/ai";
@@ -29,46 +28,47 @@ export type InsightReportView =
 
 export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
-const INSIGHT_JSON_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
+// Gemini structured-output schema (subset of OpenAPI). propertyOrdering keeps
+// the model's output stable and readable.
+const INSIGHT_SCHEMA: Schema = {
+  type: Type.OBJECT,
   properties: {
-    headline: { type: "string" },
+    headline: { type: Type.STRING },
     weaknesses: {
-      type: "array",
+      type: Type.ARRAY,
       items: {
-        type: "object",
-        additionalProperties: false,
+        type: Type.OBJECT,
         properties: {
-          area: { type: "string" },
-          impactSummary: { type: "string" },
-          detail: { type: "string" },
+          area: { type: Type.STRING },
+          impactSummary: { type: Type.STRING },
+          detail: { type: Type.STRING },
         },
         required: ["area", "impactSummary", "detail"],
+        propertyOrdering: ["area", "impactSummary", "detail"],
       },
     },
-    improving: { type: "array", items: { type: "string" } },
+    improving: { type: Type.ARRAY, items: { type: Type.STRING } },
     practicePriorities: {
-      type: "array",
+      type: Type.ARRAY,
       items: {
-        type: "object",
-        additionalProperties: false,
+        type: Type.OBJECT,
         properties: {
-          title: { type: "string" },
-          detail: { type: "string" },
+          title: { type: Type.STRING },
+          detail: { type: Type.STRING },
         },
         required: ["title", "detail"],
+        propertyOrdering: ["title", "detail"],
       },
     },
-    courseManagement: { type: "array", items: { type: "string" } },
+    courseManagement: { type: Type.ARRAY, items: { type: Type.STRING } },
     scoringProjection: {
-      type: "object",
-      additionalProperties: false,
+      type: Type.OBJECT,
       properties: {
-        target: { type: "string" },
-        rationale: { type: "string" },
+        target: { type: Type.STRING },
+        rationale: { type: Type.STRING },
       },
       required: ["target", "rationale"],
+      propertyOrdering: ["target", "rationale"],
     },
   },
   required: [
@@ -79,7 +79,15 @@ const INSIGHT_JSON_SCHEMA = {
     "courseManagement",
     "scoringProjection",
   ],
-} as const;
+  propertyOrdering: [
+    "headline",
+    "weaknesses",
+    "improving",
+    "practicePriorities",
+    "courseManagement",
+    "scoringProjection",
+  ],
+};
 
 const COACH_SYSTEM = `You are an expert golf coach analyzing a single amateur golfer's performance data.
 You will receive a JSON snapshot of their stats computed under the World Handicap System.
@@ -87,12 +95,16 @@ Ground every statement in the numbers provided — never invent stats the data d
 Be specific and actionable. Rank weaknesses by their likely impact on scoring (a high
 doubles-or-worse rate or poor scrambling usually costs more than a fractional GIR difference).
 Where a category is null it means the golfer hasn't tracked it — don't treat null as zero.
-Keep each field concise and free of fluff.`;
+Keep each field concise and free of fluff. Give 2-3 weaknesses.`;
 
 function errorMessage(e: unknown): string {
   if (e instanceof MissingApiKeyError) return e.message;
-  if (e instanceof Anthropic.APIError) {
-    return `Anthropic API error (${e.status ?? "?"}): ${e.message}`;
+  if (e && typeof e === "object" && "status" in e) {
+    const status = (e as { status?: unknown }).status;
+    const msg = (e as { message?: unknown }).message;
+    return `Gemini API error${status ? ` (${String(status)})` : ""}: ${
+      typeof msg === "string" ? msg : "request failed"
+    }`;
   }
   return e instanceof Error ? e.message : "Something went wrong generating insights.";
 }
@@ -107,38 +119,28 @@ export async function generateInsights(): Promise<ActionResult<InsightReportView
   }
 
   try {
-    const client = getAnthropicClient();
+    const ai = getGeminiClient();
     const payload = buildCoachingPayload(rounds, hcp);
 
-    const message = await client.messages.create({
+    const response = await ai.models.generateContent({
       model: COACH_MODEL,
-      max_tokens: 8000,
-      thinking: { type: "adaptive" },
-      output_config: {
-        effort: "medium",
-        format: {
-          type: "json_schema",
-          name: "golf_insight",
-          schema: INSIGHT_JSON_SCHEMA,
-        },
+      contents: `Here is my golf data. Return the structured coaching analysis: my top 2-3 weaknesses ranked by scoring impact, what's improving, this week's practice priorities, course-management notes, and a realistic scoring projection.\n\n${JSON.stringify(payload, null, 2)}`,
+      config: {
+        systemInstruction: COACH_SYSTEM,
+        responseMimeType: "application/json",
+        responseSchema: INSIGHT_SCHEMA,
       },
-      system: COACH_SYSTEM,
-      messages: [
-        {
-          role: "user",
-          content: `Here is my golf data. Return the structured coaching analysis: include my top 2-3 weaknesses ranked by scoring impact, what's improving, this week's practice priorities, course-management notes, and a realistic scoring projection.\n\n${JSON.stringify(payload, null, 2)}`,
-        },
-      ],
-    } as Anthropic.Messages.MessageCreateParamsNonStreaming);
+    });
 
-    const text = textFromMessage(message.content);
+    const text = response.text;
+    if (!text) return { ok: false, error: "The model returned an empty response." };
     const insight = JSON.parse(text) as Insight;
 
     const saved = await prisma.insightReport.create({
       data: {
         kind: "insight",
         content: JSON.stringify(insight),
-        model: message.model,
+        model: response.modelVersion ?? COACH_MODEL,
       },
     });
 
@@ -172,30 +174,26 @@ export async function askQuestion(
   }
 
   try {
-    const client = getAnthropicClient();
+    const ai = getGeminiClient();
     const payload = buildCoachingPayload(rounds, hcp);
 
-    const message = await client.messages.create({
+    const response = await ai.models.generateContent({
       model: COACH_MODEL,
-      max_tokens: 2000,
-      thinking: { type: "adaptive" },
-      output_config: { effort: "medium" },
-      system: `${COACH_SYSTEM}\nAnswer the golfer's question directly and concisely using only their data below. If the data can't answer it, say so plainly.`,
-      messages: [
-        {
-          role: "user",
-          content: `My data:\n${JSON.stringify(payload, null, 2)}\n\nQuestion: ${q}`,
-        },
-      ],
-    } as Anthropic.Messages.MessageCreateParamsNonStreaming);
+      contents: `My data:\n${JSON.stringify(payload, null, 2)}\n\nQuestion: ${q}`,
+      config: {
+        systemInstruction: `${COACH_SYSTEM}\nAnswer the golfer's question directly and concisely using only their data. If the data can't answer it, say so plainly.`,
+      },
+    });
 
-    const answer = textFromMessage(message.content);
+    const answer = response.text ?? "";
+    if (!answer) return { ok: false, error: "The model returned an empty response." };
+
     const saved = await prisma.insightReport.create({
       data: {
         kind: "question",
         question: q,
         content: answer,
-        model: message.model,
+        model: response.modelVersion ?? COACH_MODEL,
       },
     });
 

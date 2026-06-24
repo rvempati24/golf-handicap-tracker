@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function InsightsPage() {
   const reports = await getInsightReports();
-  const hasApiKey = Boolean(process.env.ANTHROPIC_API_KEY);
+  const hasApiKey = Boolean(process.env.GEMINI_API_KEY);
 
   return (
     <div>

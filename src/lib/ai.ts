@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI } from "@google/genai";
 import type { RoundView } from "@/lib/rounds";
 import type { HandicapState } from "@/lib/handicap";
 import {
@@ -8,24 +8,23 @@ import {
   type StatsSummary,
 } from "@/lib/stats";
 
-export const COACH_MODEL = "claude-opus-4-8";
-
-/** Returns a configured client, or throws a clear error when the key is missing. */
-export function getAnthropicClient(): Anthropic {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new MissingApiKeyError();
-  }
-  return new Anthropic({ apiKey });
-}
+// Gemini 2.5 Flash: fast, free-tier friendly, supports JSON-schema structured output.
+export const COACH_MODEL = "gemini-2.5-flash";
 
 export class MissingApiKeyError extends Error {
   constructor() {
     super(
-      "ANTHROPIC_API_KEY is not set. Add it to your .env to enable AI insights.",
+      "GEMINI_API_KEY is not set. Add it to your .env to enable AI insights.",
     );
     this.name = "MissingApiKeyError";
   }
+}
+
+/** Returns a configured Gemini client, or throws a clear error when the key is missing. */
+export function getGeminiClient(): GoogleGenAI {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new MissingApiKeyError();
+  return new GoogleGenAI({ apiKey });
 }
 
 function round1(x: number | null): number | null {
@@ -67,8 +66,7 @@ export function buildCoachingPayload(
   const trend = computeTrend([...roundsDesc].reverse());
 
   const recentRounds = roundsDesc.slice(0, 8).map((r) => {
-    const total =
-      r.totalStrokes ?? r.holes.reduce((a, h) => a + h.strokes, 0);
+    const total = r.totalStrokes ?? r.holes.reduce((a, h) => a + h.strokes, 0);
     return {
       date: r.datePlayed.toISOString().slice(0, 10),
       course: r.courseName,
@@ -102,13 +100,4 @@ export function buildCoachingPayload(
     indexTrend,
     recentRounds,
   };
-}
-
-/** Pull concatenated text out of a Claude message response. */
-export function textFromMessage(content: Anthropic.Messages.ContentBlock[]): string {
-  return content
-    .filter((b): b is Anthropic.Messages.TextBlock => b.type === "text")
-    .map((b) => b.text)
-    .join("")
-    .trim();
 }

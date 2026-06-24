@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card } from "@/components/ui";
+import { ChevronDown, MoreHorizontalIcon, TargetIcon } from "@/components/icons";
 import { deriveGir, toParLabel } from "@/lib/scoring";
 import type { RoundInput } from "./actions";
 
@@ -35,6 +37,87 @@ type HoleState = {
   sandSuccess: boolean;
   driveDistance: string;
 };
+
+const fieldClass =
+  "h-10 rounded-lg border border-border bg-background px-3 text-sm transition placeholder:text-muted/70";
+
+const compactFieldClass =
+  "h-9 rounded-md border border-border bg-surface px-2 text-sm transition";
+
+function RoundField({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <label className={`flex min-w-0 flex-col gap-1.5 text-sm ${className}`}>
+      <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function SummaryChip({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: ReactNode;
+  tone?: "default" | "accent";
+}) {
+  return (
+    <div
+      className={`rounded-lg border px-2 py-2 sm:px-3 ${
+        tone === "accent"
+          ? "border-accent/25 bg-accent-soft"
+          : "border-border bg-background"
+      }`}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+        {label}
+      </p>
+      <p className="mt-0.5 font-display text-lg font-medium tabular-nums leading-none sm:text-xl">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function ScoreInput({
+  label,
+  value,
+  min,
+  invalid = false,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  min: number;
+  invalid?: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <input
+      type="number"
+      inputMode="numeric"
+      min={min}
+      placeholder="-"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`h-11 w-full rounded-lg border bg-background px-2 text-center text-lg font-medium tabular-nums transition placeholder:text-muted/60 sm:h-10 sm:text-base ${
+        invalid ? "border-red-500" : "border-border"
+      }`}
+      aria-label={label}
+    />
+  );
+}
 
 function blankHoles(pars: number[], si: number[]): HoleState[] {
   return Array.from({ length: 18 }, (_, i) => ({
@@ -159,20 +242,42 @@ export default function RoundForm({
       par = 0,
       entered = 0,
       frontStrokes = 0,
-      backStrokes = 0;
+      backStrokes = 0,
+      gir = 0,
+      fairwaysHit = 0,
+      fairwaysTracked = 0;
     holes.forEach((h, i) => {
       const s = Number(h.strokes);
+      const p = Number(h.putts);
       if (h.strokes !== "" && s > 0) {
         strokes += s;
         par += h.par;
         entered++;
         if (i < 9) frontStrokes += s;
         else backStrokes += s;
+        if (h.putts !== "") {
+          const girHit =
+            h.girOverride != null ? h.girOverride : deriveGir(s, p, h.par);
+          if (girHit) gir++;
+        }
       }
-      const p = Number(h.putts);
       if (h.putts !== "") putts += p;
+      if (h.par !== 3 && h.fairwayHit != null) {
+        fairwaysTracked++;
+        if (h.fairwayHit) fairwaysHit++;
+      }
     });
-    return { strokes, putts, par, entered, frontStrokes, backStrokes };
+    return {
+      strokes,
+      putts,
+      par,
+      entered,
+      frontStrokes,
+      backStrokes,
+      gir,
+      fairwaysHit,
+      fairwaysTracked,
+    };
   }, [holes]);
 
   function validate(): { ok: boolean; error?: string; input?: RoundInput } {
@@ -233,64 +338,122 @@ export default function RoundForm({
     });
   }
 
+  const progress = Math.round((totals.entered / 18) * 100);
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Round meta */}
-      <Card className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Date</span>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="rounded-lg border border-border bg-background px-3 py-2"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Course</span>
-          <select
-            value={courseId}
-            onChange={(e) => onCourseChange(e.target.value)}
-            className="rounded-lg border border-border bg-background px-3 py-2"
-          >
-            {courses.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Tee set</span>
-          <select
-            value={teeSetId}
-            onChange={(e) => setTeeSetId(e.target.value)}
-            className="rounded-lg border border-border bg-background px-3 py-2"
-          >
-            {course?.teeSets.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name} · {t.courseRating}/{t.slopeRating}
-              </option>
-            ))}
-            {course && course.teeSets.length === 0 && (
-              <option value="">No tee sets — add one first</option>
-            )}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Weather</span>
-          <input
-            value={weather}
-            onChange={(e) => setWeather(e.target.value)}
-            placeholder="optional"
-            className="rounded-lg border border-border bg-background px-3 py-2"
-          />
-        </label>
+      <Card className="p-4">
+        <div className="grid gap-3 md:grid-cols-[1.1fr_1fr]">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <RoundField label="Date">
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className={fieldClass}
+              />
+            </RoundField>
+            <RoundField label="Course">
+              <select
+                value={courseId}
+                onChange={(e) => onCourseChange(e.target.value)}
+                className={fieldClass}
+              >
+                {courses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </RoundField>
+            <RoundField label="Tee set">
+              <select
+                value={teeSetId}
+                onChange={(e) => setTeeSetId(e.target.value)}
+                className={fieldClass}
+              >
+                {course?.teeSets.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} / {t.courseRating}/{t.slopeRating}
+                  </option>
+                ))}
+                {course && course.teeSets.length === 0 && (
+                  <option value="">No tee sets - add one first</option>
+                )}
+              </select>
+            </RoundField>
+            <RoundField label="Weather">
+              <input
+                value={weather}
+                onChange={(e) => setWeather(e.target.value)}
+                placeholder="Optional"
+                className={fieldClass}
+              />
+            </RoundField>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2 md:grid-cols-2 lg:grid-cols-4">
+            <SummaryChip
+              label="Total"
+              value={
+                totals.strokes
+                  ? totals.entered === 18
+                    ? `${totals.strokes} ${toParLabel(totals.strokes - totals.par)}`
+                    : totals.strokes
+                  : "-"
+              }
+              tone="accent"
+            />
+            <SummaryChip label="Putts" value={totals.putts || "-"} />
+            <SummaryChip label="GIR" value={`${totals.gir}/${totals.entered || 0}`} />
+            <SummaryChip
+              label="Fairways"
+              value={
+                totals.fairwaysTracked
+                  ? `${totals.fairwaysHit}/${totals.fairwaysTracked}`
+                  : "-"
+              }
+            />
+          </div>
+        </div>
       </Card>
 
-      {/* Scorecard */}
-      <Card className="p-0">
-        <div className="hidden grid-cols-[3rem_2.5rem_2.5rem_1fr_1fr_3rem_2rem] gap-2 border-b border-border px-3 py-2 text-xs font-medium text-muted sm:grid">
+      <Card className="overflow-hidden p-0">
+        <div className="border-b border-border bg-surface-2 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <TargetIcon width={17} height={17} className="text-accent" />
+                <h2 className="text-sm font-semibold">Scorecard</h2>
+              </div>
+              <p className="mt-1 text-xs text-muted">
+                {totals.entered}/18 holes entered
+              </p>
+            </div>
+            <div className="flex gap-2 text-sm">
+              <span className="rounded-md border border-border bg-surface px-2 py-1 text-muted">
+                Out{" "}
+                <strong className="font-semibold text-foreground tabular-nums">
+                  {totals.frontStrokes || "-"}
+                </strong>
+              </span>
+              <span className="rounded-md border border-border bg-surface px-2 py-1 text-muted">
+                In{" "}
+                <strong className="font-semibold text-foreground tabular-nums">
+                  {totals.backStrokes || "-"}
+                </strong>
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border">
+            <div
+              className="h-full rounded-full bg-accent transition-all"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="hidden grid-cols-[3rem_2.5rem_2.5rem_1fr_1fr_3.5rem_2.5rem] gap-3 border-b border-border px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted sm:grid">
           <span>Hole</span>
           <span className="text-center">Par</span>
           <span className="text-center">SI</span>
@@ -314,14 +477,15 @@ export default function RoundForm({
             const puttsInvalid = h.putts !== "" && h.strokes !== "" && p > s;
             const toPar = hasScore ? s - h.par : null;
             const isOpen = expanded.has(i);
+
             return (
-              <li key={i} className="px-3 py-2">
-                <div className="grid grid-cols-[2.2rem_1fr_1fr_2.5rem_2rem] items-center gap-2 sm:grid-cols-[3rem_2.5rem_2.5rem_1fr_1fr_3rem_2rem]">
-                  <div className="text-sm font-semibold">
-                    {i + 1}
-                    <span className="ml-1 text-xs font-normal text-muted sm:hidden">
-                      P{h.par}·{h.strokeIndex}
-                    </span>
+              <li key={i} className={isOpen ? "bg-accent-soft/40" : "bg-surface"}>
+                <div className="grid grid-cols-[3rem_1fr_1fr_2.5rem] items-center gap-2 px-3 py-2 sm:grid-cols-[3rem_2.5rem_2.5rem_1fr_1fr_3.5rem_2.5rem] sm:gap-3 sm:px-4">
+                  <div>
+                    <p className="font-semibold tabular-nums">{i + 1}</p>
+                    <p className="text-[11px] text-muted sm:hidden">
+                      Par {h.par} / SI {h.strokeIndex}
+                    </p>
                   </div>
                   <span className="hidden text-center text-sm text-muted sm:block">
                     {h.par}
@@ -329,59 +493,57 @@ export default function RoundForm({
                   <span className="hidden text-center text-sm text-muted sm:block">
                     {h.strokeIndex}
                   </span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
+                  <ScoreInput
+                    label={`Hole ${i + 1} strokes`}
                     min={1}
-                    placeholder="—"
                     value={h.strokes}
-                    onChange={(e) => setHole(i, { strokes: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-background px-2 py-2 text-center tabular-nums"
-                    aria-label={`Hole ${i + 1} strokes`}
+                    onChange={(value) => setHole(i, { strokes: value })}
                   />
-                  <input
-                    type="number"
-                    inputMode="numeric"
+                  <ScoreInput
+                    label={`Hole ${i + 1} putts`}
                     min={0}
-                    placeholder="—"
                     value={h.putts}
-                    onChange={(e) => setHole(i, { putts: e.target.value })}
-                    className={`w-full rounded-lg border bg-background px-2 py-2 text-center tabular-nums ${
-                      puttsInvalid ? "border-red-500" : "border-border"
-                    }`}
-                    aria-label={`Hole ${i + 1} putts`}
+                    invalid={puttsInvalid}
+                    onChange={(value) => setHole(i, { putts: value })}
                   />
                   <div className="hidden justify-center sm:flex">
                     <span
-                      className={`inline-block h-3 w-3 rounded-full ${
-                        gir ? "bg-accent" : "bg-border"
+                      className={`inline-flex h-6 min-w-10 items-center justify-center rounded-full px-2 text-[11px] font-semibold ${
+                        gir
+                          ? "bg-accent text-accent-fg"
+                          : "bg-background text-muted"
                       }`}
-                      title={gir ? "GIR" : "No GIR"}
-                    />
+                      title={gir ? "Green in regulation" : "No green in regulation"}
+                    >
+                      {gir ? "Hit" : "-"}
+                    </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => toggleExpand(i)}
-                    className="justify-self-end rounded-md px-2 py-1 text-muted hover:bg-background"
-                    aria-label="More fields"
+                    className="grid h-9 w-9 place-items-center justify-self-end rounded-md text-muted transition hover:bg-background hover:text-foreground"
+                    aria-label={`Toggle hole ${i + 1} details`}
+                    title={`Hole ${i + 1} details`}
                   >
-                    {isOpen ? "▲" : "⋯"}
+                    {isOpen ? (
+                      <ChevronDown width={18} height={18} className="rotate-180" />
+                    ) : (
+                      <MoreHorizontalIcon width={18} height={18} />
+                    )}
                   </button>
                 </div>
 
-                {/* Per-hole quick summary on mobile */}
                 {hasScore && (
-                  <div className="mt-1 flex gap-2 text-xs text-muted sm:hidden">
+                  <div className="flex gap-2 px-3 pb-2 text-xs text-muted sm:hidden">
                     <span>{toPar != null ? toParLabel(toPar) : ""}</span>
-                    <span>{gir ? "GIR ✓" : "GIR ✗"}</span>
+                    <span>GIR {gir ? "Hit" : "Miss"}</span>
                   </div>
                 )}
 
                 {isOpen && (
-                  <div className="mt-2 grid grid-cols-2 gap-3 rounded-lg bg-background p-3 text-sm sm:grid-cols-3">
+                  <div className="grid gap-3 border-t border-border bg-background/70 px-3 py-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
                     {h.par !== 3 && (
-                      <label className="flex items-center justify-between gap-2">
-                        <span>Fairway</span>
+                      <RoundField label="Fairway">
                         <select
                           value={
                             h.fairwayHit === null ? "" : h.fairwayHit ? "hit" : "miss"
@@ -394,16 +556,15 @@ export default function RoundForm({
                                   : e.target.value === "hit",
                             })
                           }
-                          className="rounded-md border border-border bg-surface px-2 py-1"
+                          className={compactFieldClass}
                         >
-                          <option value="">—</option>
+                          <option value="">Not tracked</option>
                           <option value="hit">Hit</option>
                           <option value="miss">Miss</option>
                         </select>
-                      </label>
+                      </RoundField>
                     )}
-                    <label className="flex items-center justify-between gap-2">
-                      <span>GIR</span>
+                    <RoundField label="GIR">
                       <select
                         value={h.girOverride === null ? "auto" : h.girOverride ? "yes" : "no"}
                         onChange={(e) =>
@@ -414,25 +575,23 @@ export default function RoundForm({
                                 : e.target.value === "yes",
                           })
                         }
-                        className="rounded-md border border-border bg-surface px-2 py-1"
+                        className={compactFieldClass}
                       >
                         <option value="auto">Auto</option>
                         <option value="yes">Yes</option>
                         <option value="no">No</option>
                       </select>
-                    </label>
-                    <label className="flex items-center justify-between gap-2">
-                      <span>Penalties</span>
+                    </RoundField>
+                    <RoundField label="Penalties">
                       <input
                         type="number"
                         min={0}
                         value={h.penalties}
                         onChange={(e) => setHole(i, { penalties: e.target.value })}
-                        className="w-14 rounded-md border border-border bg-surface px-2 py-1 text-center tabular-nums"
+                        className={`${compactFieldClass} text-center tabular-nums`}
                       />
-                    </label>
-                    <label className="flex items-center justify-between gap-2">
-                      <span>Up &amp; down</span>
+                    </RoundField>
+                    <RoundField label="Up and down">
                       <select
                         value={
                           !h.upDownAttempt ? "none" : h.upDownSuccess ? "made" : "miss"
@@ -444,15 +603,14 @@ export default function RoundForm({
                             upDownSuccess: v === "made",
                           });
                         }}
-                        className="rounded-md border border-border bg-surface px-2 py-1"
+                        className={compactFieldClass}
                       >
-                        <option value="none">—</option>
+                        <option value="none">No attempt</option>
                         <option value="made">Made</option>
                         <option value="miss">Missed</option>
                       </select>
-                    </label>
-                    <label className="flex items-center justify-between gap-2">
-                      <span>Sand save</span>
+                    </RoundField>
+                    <RoundField label="Sand save">
                       <select
                         value={
                           !h.sandAttempt ? "none" : h.sandSuccess ? "made" : "miss"
@@ -464,94 +622,62 @@ export default function RoundForm({
                             sandSuccess: v === "made",
                           });
                         }}
-                        className="rounded-md border border-border bg-surface px-2 py-1"
+                        className={compactFieldClass}
                       >
-                        <option value="none">—</option>
+                        <option value="none">No attempt</option>
                         <option value="made">Made</option>
                         <option value="miss">Missed</option>
                       </select>
-                    </label>
-                    <label className="flex items-center justify-between gap-2">
-                      <span>Drive (y)</span>
+                    </RoundField>
+                    <RoundField label="Drive yards">
                       <input
                         type="number"
                         min={0}
                         value={h.driveDistance}
                         onChange={(e) => setHole(i, { driveDistance: e.target.value })}
-                        placeholder="—"
-                        className="w-16 rounded-md border border-border bg-surface px-2 py-1 text-center tabular-nums"
+                        placeholder="-"
+                        className={`${compactFieldClass} text-center tabular-nums`}
                       />
-                    </label>
+                    </RoundField>
                   </div>
                 )}
               </li>
             );
           })}
         </ul>
-
-        {/* Totals footer */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-3 py-3 text-sm">
-          <div className="flex gap-4">
-            <span className="text-muted">
-              Out <span className="font-semibold text-foreground tabular-nums">{totals.frontStrokes || "—"}</span>
-            </span>
-            <span className="text-muted">
-              In <span className="font-semibold text-foreground tabular-nums">{totals.backStrokes || "—"}</span>
-            </span>
-            <span className="text-muted">
-              Total{" "}
-              <span className="font-semibold text-foreground tabular-nums">
-                {totals.strokes || "—"}
-              </span>
-              {totals.entered === 18 && (
-                <span className="ml-1">({toParLabel(totals.strokes - totals.par)})</span>
-              )}
-            </span>
-            <span className="text-muted">
-              Putts <span className="font-semibold text-foreground tabular-nums">{totals.putts || "—"}</span>
-            </span>
-          </div>
-          <span className="text-xs text-muted">{totals.entered}/18 holes</span>
-        </div>
       </Card>
 
-      {/* Advanced + notes */}
-      <Card className="flex flex-col gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Notes</span>
+      <Card className="grid gap-3 md:grid-cols-[1fr_12rem]">
+        <RoundField label="Notes">
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            rows={2}
-            placeholder="How'd it go?"
-            className="rounded-lg border border-border bg-background px-3 py-2"
+            rows={3}
+            placeholder="What stood out?"
+            className="min-h-24 rounded-lg border border-border bg-background px-3 py-2 text-sm transition placeholder:text-muted/70"
           />
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="font-medium">PCC adjustment</span>
+        </RoundField>
+        <RoundField label="PCC adjustment">
           <input
             type="number"
             min={-1}
             max={3}
             value={pcc}
             onChange={(e) => setPcc(e.target.value)}
-            className="w-16 rounded-lg border border-border bg-background px-2 py-1 text-center tabular-nums"
+            className={`${fieldClass} text-center tabular-nums`}
           />
-          <span className="text-xs text-muted">
-            Playing Conditions Calculation (default 0)
-          </span>
-        </label>
+        </RoundField>
       </Card>
 
       {error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
           {error}
         </p>
       )}
 
-      <div className="sticky bottom-16 z-10 sm:bottom-0">
+      <div>
         <Button onClick={onSubmit} disabled={pending} className="w-full py-3 shadow-lg">
-          {pending ? "Saving…" : initial ? "Save changes" : "Save round"}
+          {pending ? "Saving..." : initial ? "Save changes" : "Save round"}
         </Button>
       </div>
     </div>

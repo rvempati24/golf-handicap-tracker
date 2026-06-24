@@ -80,6 +80,34 @@ export function ChevronRight(props: IconProps) {
   );
 }
 
+export function ChevronDown(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
+export function MoreHorizontalIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="6" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="18" cy="12" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function WarningIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3 2.8 19h18.4L12 3Z" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+    </svg>
+  );
+}
+
 export function ArrowLeft(props: IconProps) {
   return (
     <svg {...base(props)}>

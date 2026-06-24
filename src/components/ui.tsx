@@ -31,7 +31,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-border bg-surface p-5 shadow-card ${className}`}
+      className={`rounded-lg border border-border bg-surface p-5 shadow-card ${className}`}
     >
       {children}
     </div>
@@ -51,7 +51,7 @@ export function StatTile({
 }) {
   return (
     <div
-      className={`flex flex-col gap-1 rounded-2xl border p-4 shadow-card ${
+      className={`flex flex-col gap-1 rounded-lg border p-4 shadow-card ${
         accent
           ? "border-accent/30 bg-accent-soft"
           : "border-border bg-surface"
@@ -96,7 +96,7 @@ export function EmptyState({
 }
 
 const buttonBase =
-  "inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50";
 
 const buttonVariants = {
   primary: "bg-accent text-accent-fg hover:bg-accent-hover shadow-card",
