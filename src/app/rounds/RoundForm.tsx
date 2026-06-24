@@ -93,30 +93,39 @@ function SummaryChip({
 
 function ScoreInput({
   label,
+  hint,
   value,
   min,
   invalid = false,
   onChange,
 }: {
   label: string;
+  hint?: string;
   value: string;
   min: number;
   invalid?: boolean;
   onChange: (value: string) => void;
 }) {
   return (
-    <input
-      type="number"
-      inputMode="numeric"
-      min={min}
-      placeholder="-"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={`h-11 w-full rounded-lg border bg-background px-2 text-center text-lg font-medium tabular-nums transition placeholder:text-muted/60 sm:h-10 sm:text-base ${
-        invalid ? "border-red-500" : "border-border"
-      }`}
-      aria-label={label}
-    />
+    <div className="flex flex-col gap-1">
+      {hint && (
+        <span className="text-center text-[10px] font-semibold uppercase tracking-wider text-muted sm:hidden">
+          {hint}
+        </span>
+      )}
+      <input
+        type="number"
+        inputMode="numeric"
+        min={min}
+        placeholder="-"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`h-11 w-full rounded-lg border bg-background px-2 text-center text-lg font-medium tabular-nums transition placeholder:text-muted/60 sm:h-10 sm:text-base ${
+          invalid ? "border-red-500" : "border-border"
+        }`}
+        aria-label={label}
+      />
+    </div>
   );
 }
 
@@ -498,12 +507,14 @@ export default function RoundForm({
                   </span>
                   <ScoreInput
                     label={`Hole ${i + 1} strokes`}
+                    hint="Strokes"
                     min={1}
                     value={h.strokes}
                     onChange={(value) => setHole(i, { strokes: value })}
                   />
                   <ScoreInput
                     label={`Hole ${i + 1} putts`}
+                    hint="Putts"
                     min={0}
                     value={h.putts}
                     invalid={puttsInvalid}
