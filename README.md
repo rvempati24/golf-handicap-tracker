@@ -11,6 +11,7 @@ coaching insights from your data.
 - **Prisma + Postgres** (Neon-ready)
 - **Recharts** for trend charts
 - **Google Gemini API** (`@google/genai`) for AI insights
+- **GolfCourseAPI** for course search/import
 - Simple owner-key write gate for single-user score/course entry
 
 ## Getting started
@@ -45,6 +46,7 @@ Open http://localhost:3000.
 | `DIRECT_URL`        | yes             | Direct/non-pooled Postgres URL for Prisma migrations |
 | `OWNER_WRITE_KEY`   | yes for writes  | Private key required to create/edit/delete data      |
 | `GEMINI_API_KEY`    | for AI Insights | Gemini API key. **Never hardcode** — env only.       |
+| `GOLF_COURSE_API_KEY` | for course import | GolfCourseAPI key. **Never hardcode** — env only. |
 
 ## Deploying to Vercel + Neon
 
@@ -55,6 +57,7 @@ Open http://localhost:3000.
    - `DIRECT_URL`: Neon direct/non-pooled connection string for the same database
    - `OWNER_WRITE_KEY`: a long private string only you know
    - `GEMINI_API_KEY`: optional, only needed for AI insights
+   - `GOLF_COURSE_API_KEY`: optional, only needed for course import
 4. Deploy. `vercel.json` makes Vercel run `npm run vercel-build`, which applies Prisma migrations with `prisma migrate deploy` before `next build`.
 5. Seed the starter course against Neon once:
 
@@ -67,6 +70,10 @@ npm run db:seed
 After deploy, public visitors can view the tracker, but write actions require
 the owner key. Enter it in the app once; the browser stores it locally and sends
 it with create/edit/delete requests.
+
+Course import is available at `/courses/import` when `GOLF_COURSE_API_KEY` is
+set. Search results come from GolfCourseAPI; the app only imports tee sets with
+complete 18-hole par, stroke-index, rating, and slope data.
 
 ## Scripts
 

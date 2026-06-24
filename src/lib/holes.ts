@@ -1,5 +1,4 @@
-// Helpers for the 18-element hole arrays that we persist as JSON strings
-// in SQLite (which has no native array type).
+// Helpers for the 18-element hole arrays that we persist as JSON strings.
 
 export const HOLE_COUNT = 18;
 

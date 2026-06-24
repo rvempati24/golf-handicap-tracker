@@ -19,7 +19,12 @@ export default async function CoursesPage({
         title="Courses"
         subtitle="Manage courses and their tee sets"
         action={
-          <LinkButton href="/courses/new">+ Add course</LinkButton>
+          <div className="flex gap-2">
+            <LinkButton href="/courses/import" variant="ghost">
+              Import
+            </LinkButton>
+            <LinkButton href="/courses/new">+ Add course</LinkButton>
+          </div>
         }
       />
 
