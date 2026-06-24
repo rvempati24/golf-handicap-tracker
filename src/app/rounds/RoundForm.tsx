@@ -14,10 +14,9 @@ import {
   TrashIcon,
 } from "@/components/icons";
 import { OwnerKeyField, useOwnerKey } from "@/components/OwnerKeyField";
-import { deriveGir, toParLabel } from "@/lib/scoring";
+import { toParLabel } from "@/lib/scoring";
 import {
   CLUBS,
-  OUTCOME_GROUPS,
   SHOT_TYPES,
   TYPE_LABEL,
   buildTimeline,
@@ -48,6 +47,7 @@ type ShotState = {
   id: string;
   club: string;
   outcome: string;
+  endLie: string;
   distance: string;
   typeOverride: ShotType | "";
 };
@@ -79,6 +79,38 @@ const fieldClass =
 const compactFieldClass =
   "h-10 w-full rounded-lg border border-border bg-background px-2 text-sm transition";
 
+const greenTargets = [
+  { value: "long_left", label: "Long left" },
+  { value: "long", label: "Long" },
+  { value: "long_right", label: "Long right" },
+  { value: "left", label: "Left" },
+  { value: "green", label: "Green", center: true },
+  { value: "right", label: "Right" },
+  { value: "short_left", label: "Short left" },
+  { value: "short", label: "Short" },
+  { value: "short_right", label: "Short right" },
+];
+
+const teeDirections = [
+  { value: "left", label: "Left" },
+  { value: "fairway", label: "Center" },
+  { value: "right", label: "Right" },
+  { value: "water_left", label: "Water L" },
+  { value: "water", label: "Water" },
+  { value: "water_right", label: "Water R" },
+  { value: "ob_left", label: "OB L" },
+  { value: "ob", label: "OB" },
+  { value: "ob_right", label: "OB R" },
+];
+
+const lieOptions = [
+  { value: "fairway", label: "Fairway" },
+  { value: "rough", label: "Rough" },
+  { value: "bunker", label: "Bunker" },
+  { value: "green", label: "Green" },
+  { value: "fringe", label: "Fringe" },
+];
+
 function id() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 }
@@ -93,6 +125,7 @@ function toInputShots(shots: ShotState[]): InputShot[] {
   return shots.map((s) => ({
     club: s.club || null,
     outcome: s.outcome || null,
+    endLie: s.endLie || null,
     distance: numberOrNull(s.distance),
     typeOverride: s.typeOverride || null,
   }));
@@ -149,9 +182,14 @@ function newShot(opts?: { putter?: boolean; driver?: boolean }): ShotState {
     id: id(),
     club: opts?.putter ? "Putter" : opts?.driver ? "Driver" : "",
     outcome: "",
+    endLie: "",
     distance: "",
     typeOverride: "",
   };
+}
+
+function isHoleComplete(hole: HoleState): boolean {
+  return hole.shots.some((shot) => shot.outcome === "holed" || shot.endLie === "holed");
 }
 
 function blankHoles(pars: number[], si: number[]): HoleState[] {
@@ -172,8 +210,8 @@ function deriveHole(h: HoleState): DerivedHole {
   const fairwayHit =
     h.par === 3
       ? null
-      : tee && tee.outcome
-        ? tee.outcome === "fairway" || tee.outcome === "green"
+      : tee && (tee.outcome || tee.endLie)
+        ? tee.outcome === "fairway" || tee.outcome === "green" || tee.endLie === "fairway"
         : null;
 
   const greenIdx = resolved.findIndex(
@@ -185,8 +223,6 @@ function deriveHole(h: HoleState): DerivedHole {
       .slice(0, greenIdx)
       .filter((s) => s.penalty).length;
     girHit = greenIdx + 1 + penaltiesBefore <= h.par - 2;
-  } else if (strokes > 0) {
-    girHit = deriveGir(strokes, putts, h.par);
   }
 
   const sandAttempt = resolved.some(
@@ -221,6 +257,7 @@ function legacyShotsFromHole(h: RoundFormInitial["holes"][number]): ShotState[] 
     shots.push({
       ...newShot({ driver: true }),
       outcome: h.fairwayHit == null ? "" : h.fairwayHit ? "fairway" : "left",
+      endLie: h.fairwayHit ? "fairway" : "rough",
     });
   }
   const nonPuttShots = Math.max(0, h.strokes - h.putts - h.penalties - shots.length);
@@ -229,6 +266,7 @@ function legacyShotsFromHole(h: RoundFormInitial["holes"][number]): ShotState[] 
     shots.push({
       ...newShot({ putter: true }),
       outcome: i === h.putts - 1 ? "holed" : "",
+      endLie: i === h.putts - 1 ? "holed" : "green",
     });
   }
   return shots.length ? shots : [newShot({ driver: h.par !== 3 })];
@@ -294,6 +332,174 @@ export type RoundFormInitial = {
   }[];
 };
 
+function ChoiceButton({
+  active,
+  label,
+  onClick,
+  className = "",
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-h-10 rounded-lg border px-2 py-1.5 text-xs font-medium transition ${
+        active
+          ? "border-accent bg-accent text-accent-fg"
+          : "border-border bg-surface hover:border-border-strong hover:bg-surface-2"
+      } ${className}`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function ShotResultControl({
+  shot,
+  type,
+  onChange,
+}: {
+  shot: ShotState;
+  type: ShotType;
+  onChange: (patch: Partial<ShotState>) => void;
+}) {
+  const isTeeLike = type === "tee" || type === "layup";
+  const isPutt = type === "putt";
+
+  if (isPutt) {
+    return (
+      <div className="flex flex-col gap-2 sm:col-span-3">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+          Putt result
+        </p>
+        <div className="grid grid-cols-5 gap-1.5">
+          {[
+            { value: "left", label: "Left", lie: "green" },
+            { value: "short", label: "Short", lie: "green" },
+            { value: "holed", label: "Holed", lie: "holed" },
+            { value: "long", label: "Long", lie: "green" },
+            { value: "right", label: "Right", lie: "green" },
+          ].map((option) => (
+            <ChoiceButton
+              key={option.value}
+              active={shot.outcome === option.value}
+              label={option.label}
+              onClick={() => onChange({ outcome: option.value, endLie: option.lie })}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isTeeLike) {
+    return (
+      <div className="grid gap-3 sm:col-span-3 lg:grid-cols-[1fr_16rem]">
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+            Direction
+          </p>
+          <div className="grid grid-cols-3 gap-1.5">
+            {teeDirections.map((option) => (
+              <ChoiceButton
+                key={option.value}
+                active={shot.outcome === option.value}
+                label={option.label}
+                onClick={() =>
+                  onChange({
+                    outcome: option.value,
+                    endLie:
+                      option.value === "fairway"
+                        ? "fairway"
+                        : option.value.startsWith("water") || option.value.startsWith("ob")
+                          ? "rough"
+                          : shot.endLie || "rough",
+                  })
+                }
+              />
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+            Lie
+          </p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {lieOptions.map((option) => (
+              <ChoiceButton
+                key={option.value}
+                active={shot.endLie === option.value}
+                label={option.label}
+                onClick={() =>
+                  onChange({
+                    endLie: option.value,
+                    outcome:
+                      option.value === "bunker"
+                        ? "bunker"
+                        : option.value === "green"
+                          ? "green"
+                          : shot.outcome,
+                  })
+                }
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-3 sm:col-span-3 lg:grid-cols-[18rem_1fr]">
+      <div className="flex flex-col gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+          Green target
+        </p>
+        <div className="grid aspect-square max-w-72 grid-cols-3 gap-1.5 rounded-full border border-border bg-surface-2 p-2">
+          {greenTargets.map((target) => (
+            <ChoiceButton
+              key={target.value}
+              active={shot.outcome === target.value}
+              label={target.label}
+              className={target.center ? "rounded-full text-sm" : "rounded-xl"}
+              onClick={() =>
+                onChange({
+                  outcome: target.value,
+                  endLie: target.value === "green" ? "green" : shot.endLie || "rough",
+                })
+              }
+            />
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+          Lie
+        </p>
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+          {[...lieOptions, { value: "holed", label: "Holed" }].map((option) => (
+            <ChoiceButton
+              key={option.value}
+              active={shot.endLie === option.value || (option.value === "holed" && shot.outcome === "holed")}
+              label={option.label}
+              onClick={() =>
+                onChange({
+                  endLie: option.value,
+                  outcome: option.value === "holed" ? "holed" : option.value === "green" ? "green" : shot.outcome,
+                })
+              }
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RoundForm({
   courses,
   initial,
@@ -337,6 +543,7 @@ export default function RoundForm({
           id: id(),
           club: shot.club ?? "",
           outcome: shot.result ?? "",
+          endLie: shot.endLie ?? "",
           distance: shot.startDistanceYards != null ? String(shot.startDistanceYards) : "",
           typeOverride: SHOT_TYPES.includes(shot.shotType as ShotType)
             ? (shot.shotType as ShotType)
@@ -427,12 +634,16 @@ export default function RoundForm({
     });
   }
 
-  function addShot(opts?: { putter?: boolean }) {
+  function addShot() {
     const hole = holes[activeHole];
+    const resolved = resolveShots(toInputShots(hole.shots), hole.par);
+    const previous = resolved[resolved.length - 1];
+    if (previous?.endLie === "holed") return;
     const isFirst = hole.shots.length === 0;
-    const driver = isFirst && hole.par !== 3 && !opts?.putter;
+    const shouldPutt = previous?.endLie === "green";
+    const driver = isFirst && hole.par !== 3 && !shouldPutt;
     updateHole(activeHole, {
-      shots: [...hole.shots, newShot({ putter: opts?.putter, driver })],
+      shots: [...hole.shots, newShot({ putter: shouldPutt, driver })],
     });
     markEditing(activeHole, true);
   }
@@ -450,6 +661,7 @@ export default function RoundForm({
   const derived = useMemo(() => holes.map(deriveHole), [holes]);
   const totals = useMemo(() => {
     const entered = derived.filter((h) => h.strokes > 0).length;
+    const completed = holes.filter(isHoleComplete).length;
     const strokes = derived.reduce((sum, h) => sum + h.strokes, 0);
     const putts = derived.reduce((sum, h) => sum + h.putts, 0);
     const par = holes.reduce((sum, h) => sum + h.par, 0);
@@ -457,6 +669,7 @@ export default function RoundForm({
     const fairways = derived.filter((h) => h.fairwayHit != null);
     return {
       entered,
+      completed,
       strokes,
       putts,
       par,
@@ -471,6 +684,10 @@ export default function RoundForm({
     if (!teeSetId) return { ok: false, error: "Pick a tee set." };
     const missing = derived.findIndex((h) => h.strokes < 1);
     if (missing >= 0) return { ok: false, error: `Hole ${missing + 1}: add at least one shot.` };
+    const incomplete = holes.findIndex((h) => !isHoleComplete(h));
+    if (incomplete >= 0) {
+      return { ok: false, error: `Hole ${incomplete + 1}: finish the hole by marking a shot in the hole.` };
+    }
 
     const input: RoundInput = {
       ownerKey,
@@ -534,7 +751,8 @@ export default function RoundForm({
 
   const currentHole = holes[activeHole];
   const currentDerived = derived[activeHole];
-  const progress = Math.round((totals.entered / 18) * 100);
+  const currentComplete = isHoleComplete(currentHole);
+  const progress = Math.round((totals.completed / 18) * 100);
   const isEditing = editHoles.has(activeHole) || currentHole.shots.length === 0;
 
   // Live-resolved shots for the active hole (drives type badges + timeline).
@@ -621,7 +839,7 @@ export default function RoundForm({
               <TargetIcon width={17} height={17} className="text-accent" />
               <div>
                 <h2 className="text-sm font-semibold">Shot log</h2>
-                <p className="text-xs text-muted">{totals.entered}/18 holes started</p>
+                <p className="text-xs text-muted">{totals.completed}/18 holes completed</p>
               </div>
             </div>
             <div className="h-1.5 w-40 overflow-hidden rounded-full bg-border">
@@ -636,7 +854,7 @@ export default function RoundForm({
               {holes.map((h, i) => {
                 const d = derived[i];
                 const active = i === activeHole;
-                const done = d.strokes > 0;
+                const done = isHoleComplete(h);
                 return (
                   <button
                     key={i}
@@ -702,7 +920,13 @@ export default function RoundForm({
                             </span>
                             <select
                               value={type}
-                              onChange={(e) => updateShot(shot.id, { typeOverride: e.target.value as ShotType })}
+                              onChange={(e) => {
+                                const nextType = e.target.value as ShotType;
+                                updateShot(shot.id, {
+                                  typeOverride: nextType,
+                                  club: nextType === "putt" ? "Putter" : shot.club,
+                                });
+                              }}
                               className="h-7 rounded-md bg-accent-soft px-2 text-xs font-semibold text-accent"
                               aria-label={`Shot ${index + 1} type`}
                             >
@@ -733,22 +957,6 @@ export default function RoundForm({
                               ))}
                             </select>
                           </RoundField>
-                          <RoundField label="Ended">
-                            <select
-                              value={shot.outcome}
-                              onChange={(e) => updateShot(shot.id, { outcome: e.target.value })}
-                              className={compactFieldClass}
-                            >
-                              <option value="">—</option>
-                              {OUTCOME_GROUPS.map((g) => (
-                                <optgroup key={g.label} label={g.label}>
-                                  {g.options.map((o) => (
-                                    <option key={o.value} value={o.value}>{o.label}</option>
-                                  ))}
-                                </optgroup>
-                              ))}
-                            </select>
-                          </RoundField>
                           <RoundField label={distanceLabel(type)}>
                             <input
                               type="number"
@@ -760,6 +968,11 @@ export default function RoundForm({
                               placeholder="Optional"
                             />
                           </RoundField>
+                          <ShotResultControl
+                            shot={shot}
+                            type={type}
+                            onChange={(patch) => updateShot(shot.id, patch)}
+                          />
                         </div>
                       </li>
                     );
@@ -767,12 +980,14 @@ export default function RoundForm({
                 </ul>
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Button type="button" variant="ghost" onClick={() => addShot()}>
+                  <Button type="button" variant="ghost" onClick={() => addShot()} disabled={currentComplete}>
                     <PlusIcon width={16} height={16} /> Add shot
                   </Button>
-                  <Button type="button" variant="ghost" onClick={() => addShot({ putter: true })}>
-                    <PlusIcon width={16} height={16} /> Add putt
-                  </Button>
+                  {currentComplete && (
+                    <span className="inline-flex items-center rounded-lg border border-accent/25 bg-accent-soft px-3 py-2 text-sm font-medium text-accent">
+                      Hole complete
+                    </span>
+                  )}
                 </div>
               </>
             ) : (
@@ -809,8 +1024,8 @@ export default function RoundForm({
                 <ArrowLeft width={16} height={16} /> Prev
               </Button>
               {activeHole < 17 ? (
-                <Button type="button" onClick={() => goTo(activeHole + 1)}>
-                  {isEditing && currentHole.shots.length > 0 ? "Done · Next hole" : "Next hole"}
+                <Button type="button" onClick={() => goTo(activeHole + 1)} disabled={currentHole.shots.length > 0 && !currentComplete}>
+                  {currentHole.shots.length > 0 && !currentComplete ? "Mark holed to continue" : "Next hole"}
                   <ChevronRight width={16} height={16} />
                 </Button>
               ) : (

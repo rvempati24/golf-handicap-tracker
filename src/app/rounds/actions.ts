@@ -41,7 +41,7 @@ const shotInputSchema = z.object({
   holeNumber: z.number().int().min(1).max(18),
   shotNumber: z.number().int().min(1).max(20),
   club: z.string().trim().max(40).optional().nullable(),
-  shotType: z.enum(["tee", "approach", "short_game", "bunker", "putt", "penalty"]),
+  shotType: z.enum(["tee", "layup", "approach", "short_game", "bunker", "putt", "penalty"]),
   startDistanceYards: z.number().int().min(0).max(700).optional().nullable(),
   endDistanceYards: z.number().int().min(0).max(700).optional().nullable(),
   startLie: z.string().trim().max(40).optional().nullable(),

@@ -23,6 +23,9 @@ export default async function CoursesPage({
             <LinkButton href="/courses/new">
               Add course
             </LinkButton>
+            <LinkButton href="/courses/scorecard" variant="ghost">
+              Scorecard photo
+            </LinkButton>
             <LinkButton href="/courses/manual" variant="ghost">
               Manual add
             </LinkButton>
@@ -44,6 +47,9 @@ export default async function CoursesPage({
           action={
             <div className="flex gap-2">
               <LinkButton href="/courses/new">Import course</LinkButton>
+              <LinkButton href="/courses/scorecard" variant="ghost">
+                Scorecard photo
+              </LinkButton>
               <LinkButton href="/courses/manual" variant="ghost">
                 Manual add
               </LinkButton>

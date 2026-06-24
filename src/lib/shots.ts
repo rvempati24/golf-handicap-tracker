@@ -1,5 +1,5 @@
 // Shot tracking logic — smart inference so entry stays simple.
-// You record: club + where the ball ended (outcome) + optional distance.
+// You record: club + direction/result + lie (+ optional distance).
 // Shot type, lie progression, and penalties are inferred, and a PGA-style
 // timeline is generated for display.
 //
@@ -12,10 +12,11 @@
 //   - Putting     : on the green
 export const AROUND_GREEN_YARDS = 30;
 
-export type ShotType = "tee" | "approach" | "short_game" | "bunker" | "putt";
+export type ShotType = "tee" | "layup" | "approach" | "short_game" | "bunker" | "putt";
 
 export const SHOT_TYPES: ShotType[] = [
   "tee",
+  "layup",
   "approach",
   "short_game",
   "bunker",
@@ -24,6 +25,7 @@ export const SHOT_TYPES: ShotType[] = [
 
 export const TYPE_LABEL: Record<ShotType, string> = {
   tee: "Drive",
+  layup: "Layup",
   approach: "Approach",
   short_game: "Chip / pitch",
   bunker: "Bunker shot",
@@ -41,8 +43,14 @@ export const OUTCOME_GROUPS: {
       { value: "fairway", label: "Fairway" },
       { value: "green", label: "Green" },
       { value: "fringe", label: "Fringe / just off" },
+      { value: "short", label: "Short" },
       { value: "left", label: "Rough left" },
       { value: "right", label: "Rough right" },
+      { value: "long", label: "Long" },
+      { value: "short_left", label: "Short left" },
+      { value: "short_right", label: "Short right" },
+      { value: "long_left", label: "Long left" },
+      { value: "long_right", label: "Long right" },
       { value: "bunker", label: "Bunker" },
     ],
   },
@@ -93,6 +101,12 @@ export function nextLieFromOutcome(outcome: string | null | undefined): string {
       return "holed";
     case "left":
     case "right":
+    case "short":
+    case "long":
+    case "short_left":
+    case "short_right":
+    case "long_left":
+    case "long_right":
       return "rough";
     default:
       // penalties (water/ob) — played from a drop
@@ -131,6 +145,7 @@ export function inferShotType(
 export type InputShot = {
   club: string | null;
   outcome: string | null;
+  endLie?: string | null;
   /** Drive length (tee), remaining yards to the hole (approach/short), or feet (putt). */
   distance: number | null;
   /** Manual type override; when set, inference is skipped. */
@@ -155,7 +170,7 @@ export function resolveShots(shots: InputShot[], par: number): ResolvedShot[] {
     const inferred = inferShotType(index, par, startLie, s.club, toPin);
     const shotType = s.typeOverride ?? inferred;
     const penalty = isPenaltyOutcome(s.outcome);
-    const endLie = nextLieFromOutcome(s.outcome);
+    const endLie = s.endLie || (s.outcome ? nextLieFromOutcome(s.outcome) : "");
     lie = endLie;
     return { ...s, index, shotType, startLie, endLie, penalty };
   });
@@ -165,8 +180,14 @@ const OUTCOME_PHRASE: Record<string, string> = {
   fairway: "to the fairway",
   green: "onto the green",
   fringe: "to the fringe",
+  short: "short",
   left: "missed left",
   right: "missed right",
+  long: "long",
+  short_left: "short left",
+  short_right: "short right",
+  long_left: "long left",
+  long_right: "long right",
   bunker: "into a bunker",
   water: "into the water",
   water_left: "into the water (left)",
