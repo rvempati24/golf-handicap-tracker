@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Card } from "@/components/ui";
-import { SparkIcon, ChevronRight, LockIcon } from "@/components/icons";
+import { SparkIcon, ChevronRight } from "@/components/icons";
 import { useOwner } from "@/components/OwnerProvider";
 
 export default function DashboardInsightCard({
@@ -26,25 +26,8 @@ export default function DashboardInsightCard({
     </p>
   );
 
-  // Locked: don't route into the gated page — show a warning instead.
-  if (!unlocked) {
-    return (
-      <Card className="opacity-80">
-        <div className="flex items-start gap-3">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-surface-2 text-muted">
-            <LockIcon width={18} height={18} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-medium">AI coaching insights</p>
-            <p className="mt-0.5 text-sm text-muted">
-              Enter your owner key with the key button in the top-right corner to
-              unlock AI coaching insights.
-            </p>
-          </div>
-        </div>
-      </Card>
-    );
-  }
+  // Locked: hide the card entirely.
+  if (!unlocked) return null;
 
   return (
     <Link href="/insights" className="group block">
