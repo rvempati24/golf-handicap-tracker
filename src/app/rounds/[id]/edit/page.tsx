@@ -33,6 +33,7 @@ export default async function EditRoundPage({
         courseRating: t.courseRating,
         slopeRating: t.slopeRating,
         par: t.par,
+        yardages: t.yardages,
       })),
     }));
 

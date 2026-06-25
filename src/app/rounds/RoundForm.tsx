@@ -38,6 +38,7 @@ export type CourseOption = {
     courseRating: number;
     slopeRating: number;
     par: number;
+    yardages: number[] | null;
   }[];
 };
 
@@ -920,6 +921,8 @@ export default function RoundForm({
   const currentHole = holes[activeHole];
   const currentDerived = derived[activeHole];
   const currentComplete = isHoleComplete(currentHole);
+  const teeYardages = course?.teeSets.find((t) => t.id === teeSetId)?.yardages ?? null;
+  const holeYards = teeYardages?.[activeHole] ?? null;
   const progress = Math.round((totals.completed / 18) * 100);
   const isEditing = editHoles.has(activeHole) || currentHole.shots.length === 0;
 
@@ -1037,7 +1040,10 @@ export default function RoundForm({
                     }`}
                   >
                     <span className="block text-xs font-semibold tabular-nums">H{i + 1}</span>
-                    <span className="block text-[10px] text-muted">P{h.par}</span>
+                    <span className="block text-[10px] text-muted">
+                      P{h.par}
+                      {teeYardages?.[i] ? ` · ${teeYardages[i]}y` : ""}
+                    </span>
                     <span className="block text-sm font-medium tabular-nums">{d.strokes || "-"}</span>
                   </button>
                 );
@@ -1053,7 +1059,8 @@ export default function RoundForm({
                   <h3 className="font-display text-2xl font-medium">Hole {activeHole + 1}</h3>
                 </div>
                 <p className="text-sm text-muted">
-                  Par {currentHole.par} / SI {currentHole.strokeIndex}
+                  Par {currentHole.par} · SI {currentHole.strokeIndex}
+                  {holeYards ? ` · ${holeYards} yds` : ""}
                 </p>
               </div>
               <div className="grid grid-cols-4 gap-2 text-center">

@@ -21,6 +21,7 @@ export default async function NewRoundPage() {
       courseRating: t.courseRating,
       slopeRating: t.slopeRating,
       par: t.par,
+      yardages: t.yardages,
     })),
   }));
 
