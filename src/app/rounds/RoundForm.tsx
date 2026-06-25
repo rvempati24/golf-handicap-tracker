@@ -80,27 +80,27 @@ const compactFieldClass =
   "h-10 w-full rounded-lg border border-border bg-background px-2 text-sm transition";
 
 const greenTargets = [
-  { value: "long_left", label: "Long left" },
-  { value: "long", label: "Long" },
-  { value: "long_right", label: "Long right" },
-  { value: "left", label: "Left" },
-  { value: "green", label: "Green", center: true },
-  { value: "right", label: "Right" },
-  { value: "short_left", label: "Short left" },
-  { value: "short", label: "Short" },
-  { value: "short_right", label: "Short right" },
+  { value: "long_left", label: "Long left", mark: "↖", pos: "left-[22%] top-[10%]" },
+  { value: "long", label: "Long", mark: "↑", pos: "left-1/2 top-[3%] -translate-x-1/2" },
+  { value: "long_right", label: "Long right", mark: "↗", pos: "right-[22%] top-[10%]" },
+  { value: "left", label: "Left", mark: "←", pos: "left-[3%] top-1/2 -translate-y-1/2" },
+  { value: "green", label: "Green", mark: "", center: true, pos: "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" },
+  { value: "right", label: "Right", mark: "→", pos: "right-[3%] top-1/2 -translate-y-1/2" },
+  { value: "short_left", label: "Short left", mark: "↙", pos: "bottom-[10%] left-[22%]" },
+  { value: "short", label: "Short", mark: "↓", pos: "bottom-[3%] left-1/2 -translate-x-1/2" },
+  { value: "short_right", label: "Short right", mark: "↘", pos: "bottom-[10%] right-[22%]" },
 ];
 
 const teeDirections = [
-  { value: "left", label: "Left" },
-  { value: "fairway", label: "Center" },
-  { value: "right", label: "Right" },
-  { value: "water_left", label: "Water L" },
-  { value: "water", label: "Water" },
-  { value: "water_right", label: "Water R" },
-  { value: "ob_left", label: "OB L" },
-  { value: "ob", label: "OB" },
-  { value: "ob_right", label: "OB R" },
+  { value: "left", label: "Left", mark: "L", pos: "left-[3%] top-1/2 -translate-y-1/2" },
+  { value: "fairway", label: "Center", mark: "", center: true, pos: "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" },
+  { value: "right", label: "Right", mark: "R", pos: "right-[3%] top-1/2 -translate-y-1/2" },
+  { value: "water_left", label: "Water left", mark: "~", pos: "left-[18%] top-[13%]" },
+  { value: "water", label: "Water", mark: "~", pos: "left-1/2 top-[5%] -translate-x-1/2" },
+  { value: "water_right", label: "Water right", mark: "~", pos: "right-[18%] top-[13%]" },
+  { value: "ob_left", label: "Out of bounds left", mark: "X", pos: "bottom-[13%] left-[18%]" },
+  { value: "ob", label: "Out of bounds", mark: "X", pos: "bottom-[5%] left-1/2 -translate-x-1/2" },
+  { value: "ob_right", label: "Out of bounds right", mark: "X", pos: "bottom-[13%] right-[18%]" },
 ];
 
 const lieOptions = [
@@ -332,29 +332,209 @@ export type RoundFormInitial = {
   }[];
 };
 
-function ChoiceButton({
+function MiniChoice({
   active,
   label,
+  children,
   onClick,
   className = "",
 }: {
   active: boolean;
   label: string;
+  children: ReactNode;
   onClick: () => void;
   className?: string;
 }) {
   return (
     <button
       type="button"
+      title={label}
+      aria-label={label}
       onClick={onClick}
-      className={`min-h-10 rounded-lg border px-2 py-1.5 text-xs font-medium transition ${
+      className={`grid place-items-center rounded-full border text-[11px] font-semibold leading-none transition ${
         active
-          ? "border-accent bg-accent text-accent-fg"
-          : "border-border bg-surface hover:border-border-strong hover:bg-surface-2"
+          ? "border-accent bg-accent text-accent-fg shadow-card"
+          : "border-border bg-background text-muted hover:border-border-strong hover:text-foreground"
       } ${className}`}
     >
-      {label}
+      {children}
     </button>
+  );
+}
+
+// Compass angle (0 = up, clockwise) for each direction value, per dial variant.
+const DIAL_ANGLE: Record<"green" | "fairway", Record<string, number>> = {
+  green: {
+    long: 0, long_right: 45, right: 90, short_right: 135,
+    short: 180, short_left: 225, left: 270, long_left: 315,
+  },
+  fairway: {
+    water: 0, water_right: 45, right: 90, ob_right: 135,
+    ob: 180, ob_left: 225, left: 270, water_left: 315,
+  },
+};
+
+function dialPoint(r: number, deg: number): [number, number] {
+  const a = ((deg - 90) * Math.PI) / 180;
+  return [110 + r * Math.cos(a), 110 + r * Math.sin(a)];
+}
+
+function dialSector(rIn: number, rOut: number, center: number): string {
+  const a0 = center - 22.5 + 3;
+  const a1 = center + 22.5 - 3;
+  const [x0o, y0o] = dialPoint(rOut, a0);
+  const [x1o, y1o] = dialPoint(rOut, a1);
+  const [x1i, y1i] = dialPoint(rIn, a1);
+  const [x0i, y0i] = dialPoint(rIn, a0);
+  return `M${x0o},${y0o} A${rOut},${rOut} 0 0 1 ${x1o},${y1o} L${x1i},${y1i} A${rIn},${rIn} 0 0 0 ${x0i},${y0i} Z`;
+}
+
+function isPenaltyValue(value: string): boolean {
+  return value.startsWith("water") || value.startsWith("ob");
+}
+
+function TargetDial({
+  title,
+  value,
+  options,
+  onSelect,
+  variant,
+}: {
+  title: string;
+  value: string;
+  options: typeof greenTargets;
+  onSelect: (value: string) => void;
+  variant: "green" | "fairway";
+}) {
+  const center = options.find((o) => o.center);
+  const selectedLabel = options.find((o) => o.value === value)?.label;
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+        {title}
+      </p>
+      <svg viewBox="0 0 220 220" className="h-40 w-40 sm:h-44 sm:w-44">
+        {options
+          .filter((o) => !o.center)
+          .map((o) => {
+            const ang = DIAL_ANGLE[variant][o.value];
+            if (ang == null) return null;
+            const selected = value === o.value;
+            const pen = isPenaltyValue(o.value);
+            const [lx, ly] = dialPoint(82, ang);
+            const fill = selected
+              ? pen
+                ? "#ef4444"
+                : "var(--color-accent)"
+              : "var(--color-surface)";
+            const stroke = selected
+              ? pen
+                ? "#ef4444"
+                : "var(--color-accent)"
+              : "var(--color-border)";
+            const textFill = selected
+              ? pen
+                ? "#ffffff"
+                : "var(--color-accent-fg)"
+              : pen
+                ? "#dc2626"
+                : "var(--color-muted)";
+            return (
+              <g
+                key={o.value}
+                className="cursor-pointer transition-opacity hover:opacity-80"
+                onClick={() => onSelect(o.value)}
+                role="button"
+                aria-label={o.label}
+              >
+                <path d={dialSector(60, 105, ang)} fill={fill} stroke={stroke} strokeWidth={1.5} />
+                <text
+                  x={lx}
+                  y={ly}
+                  fill={textFill}
+                  fontSize="15"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  className="pointer-events-none select-none font-semibold"
+                >
+                  {o.mark}
+                </text>
+              </g>
+            );
+          })}
+
+        {center && (
+          <g
+            className="cursor-pointer transition-opacity hover:opacity-80"
+            onClick={() => onSelect(center.value)}
+            role="button"
+            aria-label={center.label}
+          >
+            <circle
+              cx="110"
+              cy="110"
+              r="50"
+              fill={value === center.value ? "var(--color-accent)" : "var(--color-accent-soft)"}
+              stroke="var(--color-accent)"
+              strokeWidth={value === center.value ? 2 : 1.5}
+              strokeDasharray={value === center.value ? "0" : "4 3"}
+            />
+            <text
+              x="110"
+              y="110"
+              fill={value === center.value ? "var(--color-accent-fg)" : "var(--color-accent)"}
+              fontSize="13"
+              textAnchor="middle"
+              dominantBaseline="central"
+              className="pointer-events-none select-none font-bold uppercase tracking-wide"
+            >
+              {variant === "green" ? "Green" : "Fairway"}
+            </text>
+          </g>
+        )}
+      </svg>
+      <p className="text-xs text-muted">{selectedLabel ?? "Tap where it finished"}</p>
+    </div>
+  );
+}
+
+function LieStrip({
+  value,
+  includeHoled = false,
+  onSelect,
+}: {
+  value: string;
+  includeHoled?: boolean;
+  onSelect: (value: string) => void;
+}) {
+  const options = includeHoled
+    ? [...lieOptions, { value: "holed", label: "Holed" }]
+    : lieOptions;
+  return (
+    <div className="flex min-w-0 flex-col gap-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+        Lie
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            title={option.label}
+            aria-label={option.label}
+            onClick={() => onSelect(option.value)}
+            className={`h-8 min-w-8 rounded-full border px-2 text-[10px] font-semibold uppercase tracking-wide transition ${
+              value === option.value
+                ? "border-accent bg-accent text-accent-fg"
+                : "border-border bg-background text-muted hover:border-border-strong hover:text-foreground"
+            }`}
+          >
+            {option.label.slice(0, option.value === "fairway" ? 2 : 1)}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -373,23 +553,26 @@ function ShotResultControl({
   if (isPutt) {
     return (
       <div className="flex flex-col gap-2 sm:col-span-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">
           Putt result
         </p>
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {[
-            { value: "left", label: "Left", lie: "green" },
-            { value: "short", label: "Short", lie: "green" },
-            { value: "holed", label: "Holed", lie: "holed" },
-            { value: "long", label: "Long", lie: "green" },
-            { value: "right", label: "Right", lie: "green" },
+            { value: "left", label: "Left", mark: "L", lie: "green" },
+            { value: "short", label: "Short", mark: "S", lie: "green" },
+            { value: "holed", label: "Holed", mark: "In", lie: "holed" },
+            { value: "long", label: "Long", mark: "Lg", lie: "green" },
+            { value: "right", label: "Right", mark: "R", lie: "green" },
           ].map((option) => (
-            <ChoiceButton
+            <MiniChoice
               key={option.value}
               active={shot.outcome === option.value}
               label={option.label}
+              className={option.value === "holed" ? "h-8 min-w-12 px-2" : "h-8 w-8"}
               onClick={() => onChange({ outcome: option.value, endLie: option.lie })}
-            />
+            >
+              {option.mark}
+            </MiniChoice>
           ))}
         </div>
       </div>
@@ -398,104 +581,75 @@ function ShotResultControl({
 
   if (isTeeLike) {
     return (
-      <div className="grid gap-3 sm:col-span-3 lg:grid-cols-[1fr_16rem]">
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-            Direction
-          </p>
-          <div className="grid grid-cols-3 gap-1.5">
-            {teeDirections.map((option) => (
-              <ChoiceButton
-                key={option.value}
-                active={shot.outcome === option.value}
-                label={option.label}
-                onClick={() =>
-                  onChange({
-                    outcome: option.value,
-                    endLie:
-                      option.value === "fairway"
-                        ? "fairway"
-                        : option.value.startsWith("water") || option.value.startsWith("ob")
-                          ? "rough"
-                          : shot.endLie || "rough",
-                  })
-                }
-              />
-            ))}
-          </div>
-        </div>
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-            Lie
-          </p>
-          <div className="grid grid-cols-2 gap-1.5">
-            {lieOptions.map((option) => (
-              <ChoiceButton
-                key={option.value}
-                active={shot.endLie === option.value}
-                label={option.label}
-                onClick={() =>
-                  onChange({
-                    endLie: option.value,
-                    outcome:
-                      option.value === "bunker"
-                        ? "bunker"
-                        : option.value === "green"
-                          ? "green"
-                          : shot.outcome,
-                  })
-                }
-              />
-            ))}
-          </div>
-        </div>
+      <div className="flex flex-wrap items-start gap-4 sm:col-span-3">
+        <TargetDial
+          title="Line"
+          value={shot.outcome}
+          options={teeDirections}
+          variant="fairway"
+          onSelect={(value) =>
+            onChange({
+              outcome: value,
+              endLie:
+                value === "fairway"
+                  ? "fairway"
+                  : value.startsWith("water") || value.startsWith("ob")
+                    ? "rough"
+                    : shot.endLie || "rough",
+            })
+          }
+        />
+        <LieStrip
+          value={shot.endLie}
+          onSelect={(value) =>
+            onChange({
+              endLie: value,
+              outcome:
+                value === "bunker"
+                  ? "bunker"
+                  : value === "green"
+                    ? "green"
+                    : value === "fairway"
+                      ? "fairway"
+                      : shot.outcome,
+            })
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div className="grid gap-3 sm:col-span-3 lg:grid-cols-[18rem_1fr]">
-      <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-          Green target
-        </p>
-        <div className="grid aspect-square max-w-72 grid-cols-3 gap-1.5 rounded-full border border-border bg-surface-2 p-2">
-          {greenTargets.map((target) => (
-            <ChoiceButton
-              key={target.value}
-              active={shot.outcome === target.value}
-              label={target.label}
-              className={target.center ? "rounded-full text-sm" : "rounded-xl"}
-              onClick={() =>
-                onChange({
-                  outcome: target.value,
-                  endLie: target.value === "green" ? "green" : shot.endLie || "rough",
-                })
-              }
-            />
-          ))}
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-          Lie
-        </p>
-        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-          {[...lieOptions, { value: "holed", label: "Holed" }].map((option) => (
-            <ChoiceButton
-              key={option.value}
-              active={shot.endLie === option.value || (option.value === "holed" && shot.outcome === "holed")}
-              label={option.label}
-              onClick={() =>
-                onChange({
-                  endLie: option.value,
-                  outcome: option.value === "holed" ? "holed" : option.value === "green" ? "green" : shot.outcome,
-                })
-              }
-            />
-          ))}
-        </div>
-      </div>
+    <div className="flex flex-wrap items-start gap-4 sm:col-span-3">
+      <TargetDial
+        title="Green"
+        value={shot.outcome}
+        options={greenTargets}
+        variant="green"
+        onSelect={(value) =>
+          onChange({
+            outcome: value,
+            endLie: value === "green" ? "green" : shot.endLie || "rough",
+          })
+        }
+      />
+      <LieStrip
+        value={shot.endLie}
+        includeHoled
+        onSelect={(value) =>
+          onChange({
+            endLie: value,
+            outcome:
+              value === "holed"
+                ? "holed"
+                : value === "green"
+                  ? "green"
+                  : value === "bunker"
+                    ? "bunker"
+                    : shot.outcome,
+          })
+        }
+      />
     </div>
   );
 }
@@ -514,23 +668,21 @@ export default function RoundForm({
   const [error, setError] = useState<string | null>(null);
   const { ownerKey, setOwnerKey } = useOwnerKey();
 
-  // Read any saved in-progress round once (new rounds only).
-  const draft = useMemo(() => (initial ? null : readDraft()), [initial]);
-  const [restored, setRestored] = useState(!!draft);
+  const [restored, setRestored] = useState(false);
 
   const [courseId, setCourseId] = useState(
-    initial?.courseId ?? draft?.courseId ?? courses[0]?.id ?? "",
+    initial?.courseId ?? courses[0]?.id ?? "",
   );
   const course = courses.find((c) => c.id === courseId);
   const [teeSetId, setTeeSetId] = useState(
-    initial?.teeSetId ?? draft?.teeSetId ?? courses[0]?.teeSets[0]?.id ?? "",
+    initial?.teeSetId ?? courses[0]?.teeSets[0]?.id ?? "",
   );
   const [date, setDate] = useState(
-    initial?.datePlayed ?? draft?.date ?? new Date().toISOString().slice(0, 10),
+    initial?.datePlayed ?? new Date().toISOString().slice(0, 10),
   );
-  const [notes, setNotes] = useState(initial?.notes ?? draft?.notes ?? "");
-  const [weather, setWeather] = useState(initial?.weather ?? draft?.weather ?? "");
-  const [pcc, setPcc] = useState(initial ? String(initial.pcc) : (draft?.pcc ?? "0"));
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [weather, setWeather] = useState(initial?.weather ?? "");
+  const [pcc, setPcc] = useState(initial ? String(initial.pcc) : "0");
   const [activeHole, setActiveHole] = useState(0);
   const [editHoles, setEditHoles] = useState<Set<number>>(new Set());
 
@@ -557,10 +709,26 @@ export default function RoundForm({
         shots: shotsByHole.get(i + 1) ?? legacyShotsFromHole(h),
       }));
     }
-    if (draft) return draft.holes;
     const c = courses[0];
     return blankHoles(c?.holePars ?? [], c?.holeStrokeIndex ?? []);
   });
+
+  useEffect(() => {
+    if (initial) return;
+    const draft = readDraft();
+    if (!draft) return;
+    const timer = window.setTimeout(() => {
+      setCourseId(draft.courseId);
+      setTeeSetId(draft.teeSetId);
+      setDate(draft.date);
+      setNotes(draft.notes);
+      setWeather(draft.weather);
+      setPcc(draft.pcc);
+      setHoles(draft.holes);
+      setRestored(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [initial]);
 
   // Auto-save in-progress new rounds to the device so closing the app is safe.
   useEffect(() => {

@@ -6,7 +6,7 @@ import { Button, Card } from "@/components/ui";
 import { OwnerKeyField } from "@/components/OwnerKeyField";
 import { FlagIcon, PlusIcon, TargetIcon } from "@/components/icons";
 import { HOLE_COUNT } from "@/lib/holes";
-import type { ScorecardCourseState } from "./actions";
+import { extractScorecard, type ScorecardCourseState } from "./actions";
 
 type ParsedScorecard = {
   name: string;
@@ -191,10 +191,32 @@ export default function ScorecardImportClient({ action }: Props) {
     if (!file) return;
     const url = URL.createObjectURL(file);
     setImageUrl(url);
-    setStatus("Reading scorecard...");
+    setStatus("Reading scorecard with AI...");
     setProgress(0);
     setRunning(true);
     try {
+      // Primary path: Gemini 2.5 Flash vision → structured fields.
+      const fd = new FormData();
+      fd.append("image", file);
+      const res = await extractScorecard(fd);
+      if (res.ok) {
+        setRawText("");
+        setParsed({
+          name: res.data.name,
+          location: res.data.location,
+          teeName: res.data.teeName,
+          courseRating: res.data.courseRating ? String(res.data.courseRating) : "",
+          slopeRating: res.data.slopeRating ? String(res.data.slopeRating) : "",
+          pars: res.data.pars,
+          strokeIndex: res.data.strokeIndex,
+          yardages: res.data.yardages,
+        });
+        setStatus("Extracted with AI — review the details before creating the course.");
+        return;
+      }
+
+      // Fallback (e.g. no API key / offline): on-device OCR.
+      setStatus(`AI unavailable (${res.error}). Falling back to OCR...`);
       const Tesseract = await import("tesseract.js");
       const result = await Tesseract.recognize(file, "eng", {
         logger: (message) => {
