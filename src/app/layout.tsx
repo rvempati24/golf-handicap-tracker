@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
+import { OwnerProvider } from "@/components/OwnerProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,10 +43,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-        <Nav />
-        <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-6 sm:px-6 sm:pb-12">
-          <div className="animate-fade-in">{children}</div>
-        </main>
+        <OwnerProvider>
+          <Nav />
+          <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-6 sm:px-6 sm:pb-12">
+            <div className="animate-fade-in">{children}</div>
+          </main>
+        </OwnerProvider>
       </body>
     </html>
   );

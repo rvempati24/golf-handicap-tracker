@@ -13,6 +13,8 @@ import {
   CalendarIcon,
   VideoIcon,
 } from "@/components/icons";
+import { useOwner } from "@/components/OwnerProvider";
+import { OwnerKeyWidget } from "@/components/OwnerKeyWidget";
 
 type NavLink = {
   href: string;
@@ -30,6 +32,9 @@ const LINKS: NavLink[] = [
   { href: "/swing", label: "Swing", Icon: VideoIcon },
   { href: "/courses", label: "Courses", Icon: PinIcon },
 ];
+
+// Visible to everyone (read-only); the rest require an unlocked owner key.
+const PUBLIC_HREFS = new Set(["/", "/rounds"]);
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
@@ -51,6 +56,11 @@ function BrandMark() {
 
 export default function Nav() {
   const pathname = usePathname();
+  const { unlocked } = useOwner();
+
+  const visibleLinks = unlocked
+    ? LINKS
+    : LINKS.filter((l) => PUBLIC_HREFS.has(l.href));
 
   return (
     <>
@@ -64,7 +74,7 @@ export default function Nav() {
             </span>
           </Link>
           <div className="flex flex-1 items-center gap-1">
-            {LINKS.filter((l) => l.href !== "/").map((l) => {
+            {visibleLinks.filter((l) => l.href !== "/").map((l) => {
               const active = isActive(pathname, l.href);
               return (
                 <Link
@@ -82,20 +92,29 @@ export default function Nav() {
               );
             })}
           </div>
+          <OwnerKeyWidget />
         </nav>
       </header>
 
       {/* Mobile top brand */}
-      <div className="sticky top-0 z-20 flex items-center gap-2.5 border-b border-border/70 bg-background/80 px-4 py-3 backdrop-blur-md sm:hidden">
-        <BrandMark />
-        <span className="text-[15px] font-semibold tracking-tight">
-          Rishab Golf
-        </span>
+      <div className="sticky top-0 z-20 flex items-center justify-between gap-2.5 border-b border-border/70 bg-background/80 px-4 py-3 backdrop-blur-md sm:hidden">
+        <div className="flex items-center gap-2.5">
+          <BrandMark />
+          <span className="text-[15px] font-semibold tracking-tight">
+            Rishab Golf
+          </span>
+        </div>
+        <OwnerKeyWidget />
       </div>
 
       {/* Bottom tab bar — mobile */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-8 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:hidden">
-        {LINKS.map((l) => {
+      <nav
+        className="fixed inset-x-0 bottom-0 z-20 grid border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:hidden"
+        style={{
+          gridTemplateColumns: `repeat(${visibleLinks.length}, minmax(0, 1fr))`,
+        }}
+      >
+        {visibleLinks.map((l) => {
           const active = isActive(pathname, l.href);
           return (
             <Link

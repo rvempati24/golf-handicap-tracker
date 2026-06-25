@@ -258,8 +258,8 @@ export function buildTimeline(shots: TimelineShot[]): TimelineEntry[] {
   let stroke = 0;
   for (const s of shots) {
     stroke += 1;
-    // A putt is always with the putter — make that explicit rather than blank.
-    const club = s.club || (s.shotType === "putt" ? "Putter" : null);
+    // A putt is always with the putter, so don't clutter the label with it.
+    const club = s.shotType === "putt" ? null : s.club;
     const title = club ? `${TYPE_LABEL[s.shotType]} (${club})` : TYPE_LABEL[s.shotType];
     const dist =
       s.distance != null && s.distance > 0
