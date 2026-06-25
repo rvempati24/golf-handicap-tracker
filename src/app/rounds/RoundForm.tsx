@@ -415,7 +415,7 @@ function TargetDial({
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">
         {title}
       </p>
-      <svg viewBox="0 0 220 220" className="h-40 w-40 sm:h-44 sm:w-44">
+      <svg viewBox="0 0 220 220" className="h-32 w-32 sm:h-36 sm:w-36">
         {options
           .filter((o) => !o.center)
           .map((o) => {
@@ -423,7 +423,7 @@ function TargetDial({
             if (ang == null) return null;
             const selected = value === o.value;
             const pen = isPenaltyValue(o.value);
-            const [lx, ly] = dialPoint(82, ang);
+            const [lx, ly] = dialPoint(84, ang);
             const fill = selected
               ? pen
                 ? "#ef4444"
@@ -449,12 +449,12 @@ function TargetDial({
                 role="button"
                 aria-label={o.label}
               >
-                <path d={dialSector(60, 105, ang)} fill={fill} stroke={stroke} strokeWidth={1.5} />
+                <path d={dialSector(70, 100, ang)} fill={fill} stroke={stroke} strokeWidth={1.25} />
                 <text
                   x={lx}
                   y={ly}
                   fill={textFill}
-                  fontSize="15"
+                  fontSize="13"
                   textAnchor="middle"
                   dominantBaseline="central"
                   className="pointer-events-none select-none font-semibold"
@@ -475,17 +475,17 @@ function TargetDial({
             <circle
               cx="110"
               cy="110"
-              r="50"
+              r="58"
               fill={value === center.value ? "var(--color-accent)" : "var(--color-accent-soft)"}
               stroke="var(--color-accent)"
-              strokeWidth={value === center.value ? 2 : 1.5}
+              strokeWidth={value === center.value ? 1.75 : 1.25}
               strokeDasharray={value === center.value ? "0" : "4 3"}
             />
             <text
               x="110"
               y="110"
               fill={value === center.value ? "var(--color-accent-fg)" : "var(--color-accent)"}
-              fontSize="13"
+              fontSize="12"
               textAnchor="middle"
               dominantBaseline="central"
               className="pointer-events-none select-none font-bold uppercase tracking-wide"
