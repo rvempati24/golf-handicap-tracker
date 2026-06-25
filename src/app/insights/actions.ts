@@ -166,6 +166,15 @@ export async function generateInsights(
   }
 }
 
+export async function clearChat(
+  ownerKey: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!isOwnerKeyValid(ownerKey)) return { ok: false, error: ownerKeyError() };
+  await prisma.insightReport.deleteMany({ where: { kind: "question" } });
+  revalidatePath("/insights");
+  return { ok: true };
+}
+
 export async function askQuestion(
   question: string,
   ownerKey: string,

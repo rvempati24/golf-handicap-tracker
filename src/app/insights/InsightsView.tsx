@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Button, Card } from "@/components/ui";
 import { OwnerKeyField, useOwnerKey } from "@/components/OwnerKeyField";
 import { SparkIcon, PinIcon, ChevronDown, WarningIcon } from "@/components/icons";
-import { generateInsights, askQuestion } from "./actions";
+import { generateInsights, askQuestion, clearChat } from "./actions";
 import type { Insight, InsightReportView } from "./actions";
 
 function timeAgo(iso: string): string {
@@ -149,6 +149,7 @@ export default function InsightsView({
   const [question, setQuestion] = useState("");
   const [genPending, startGen] = useTransition();
   const [askPending, startAsk] = useTransition();
+  const [clearPending, startClear] = useTransition();
   const [showEarlier, setShowEarlier] = useState(false);
 
   function onGenerate() {
@@ -170,6 +171,16 @@ export default function InsightsView({
         setReports((prev) => [res.data, ...prev]);
         setQuestion("");
       }
+    });
+  }
+
+  function onClearChat() {
+    if (!window.confirm("Clear the conversation? This can't be undone.")) return;
+    setError(null);
+    startClear(async () => {
+      const res = await clearChat(ownerKey);
+      if (!res.ok) setError(res.error ?? "Couldn't clear the chat.");
+      else setReports((prev) => prev.filter((r) => r.kind !== "question"));
     });
   }
 
@@ -238,10 +249,25 @@ export default function InsightsView({
 
       {/* Conversation thread */}
       {thread.length > 0 ? (
-        <div className="flex flex-col gap-4">
-          {thread.map((r) => (
-            <ChatExchange key={r.id} report={r} />
-          ))}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs uppercase tracking-wide text-muted">
+              Conversation
+            </span>
+            <button
+              type="button"
+              onClick={onClearChat}
+              disabled={clearPending || !ownerKey.trim()}
+              className="text-xs text-muted transition hover:text-red-600 disabled:opacity-50"
+            >
+              {clearPending ? "Clearing…" : "Clear chat"}
+            </button>
+          </div>
+          <div className="flex flex-col gap-4">
+            {thread.map((r) => (
+              <ChatExchange key={r.id} report={r} />
+            ))}
+          </div>
         </div>
       ) : (
         <div className="flex items-start gap-2">
@@ -267,8 +293,9 @@ export default function InsightsView({
         </div>
       )}
 
-      {/* Composer */}
-      <div className="sticky bottom-4 z-10">
+      {/* Composer — sits above the thread with a blurred fade so bubbles
+          scrolling underneath dissolve into it instead of hard-overlapping. */}
+      <div className="sticky bottom-0 z-10 -mx-1 bg-gradient-to-t from-background from-60% via-background/80 to-transparent px-1 pb-3 pt-8 backdrop-blur-sm">
         <Card className="flex flex-col gap-2.5">
           {!ownerKey.trim() && (
             <div className="max-w-xs">
