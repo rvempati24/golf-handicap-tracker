@@ -7,6 +7,7 @@ import {
   computeTrend,
   type StatsSummary,
 } from "@/lib/stats";
+import { computeShotStrokesGained } from "@/lib/strokes-gained";
 
 // Gemini 2.5 Flash: fast, free-tier friendly, supports JSON-schema structured output.
 export const COACH_MODEL = "gemini-2.5-flash";
@@ -65,6 +66,52 @@ export function buildCoachingPayload(
   const sg = computeStrokesGained(windows.last20);
   const trend = computeTrend([...roundsDesc].reverse());
 
+  // Real shot-by-shot strokes gained (Broadie baselines) when shot data exists.
+  const shotTour = computeShotStrokesGained(roundsDesc, "tour");
+  const shotScratch = computeShotStrokesGained(roundsDesc, "scratch");
+  const shotLevelStrokesGained = shotTour
+    ? {
+        note: "Real per-shot strokes gained from the dial/shot data, via Broadie PGA Tour baselines. Negative = losing strokes vs that benchmark per round.",
+        roundsWithShotData: shotTour.roundsWithShots,
+        perRoundVsTour: {
+          total: shotTour.totalPerRound,
+          byCategory: shotTour.byCategory.map((c) => ({
+            category: c.category,
+            perRound: c.perRound,
+          })),
+        },
+        perRoundVsScratch: shotScratch
+          ? {
+              total: shotScratch.totalPerRound,
+              byCategory: shotScratch.byCategory.map((c) => ({
+                category: c.category,
+                perRound: c.perRound,
+              })),
+            }
+          : null,
+        approachByDistance: shotTour.approachBuckets
+          .filter((b) => b.shots > 0)
+          .map((b) => ({
+            distance: b.label,
+            shots: b.shots,
+            sgPerShot: b.sgPerShot,
+            greenPct: b.greenPct == null ? null : Math.round(b.greenPct),
+            avgProximityFeet: b.avgProximityFeet,
+          })),
+        byStartingLie: shotTour.byLie.map((l) => ({
+          lie: l.lie,
+          shots: l.shots,
+          sgPerShot: l.sgPerShot,
+        })),
+        missTendencies: {
+          approach: shotTour.approachMiss,
+          tee: shotTour.teeMiss,
+        },
+        putting: shotTour.puttingBuckets,
+        penaltyStrokesPerRound: shotTour.penaltyStrokesPerRound,
+      }
+    : null;
+
   const recentRounds = roundsDesc.slice(0, 8).map((r) => {
     const total = r.totalStrokes ?? r.holes.reduce((a, h) => a + h.strokes, 0);
     return {
@@ -97,6 +144,7 @@ export function buildCoachingPayload(
       allTime: summarize(windows.allTime),
     },
     approximateStrokesGained: sg,
+    shotLevelStrokesGained,
     indexTrend,
     recentRounds,
   };

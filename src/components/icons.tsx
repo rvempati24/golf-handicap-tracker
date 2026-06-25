@@ -33,6 +33,25 @@ export function PlusIcon(props: IconProps) {
   );
 }
 
+export function CalendarIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="4.5" width="18" height="16" rx="2" />
+      <path d="M3 9h18M8 3v3M16 3v3" />
+      <path d="M7.5 13l2 2 4-4" />
+    </svg>
+  );
+}
+
+export function VideoIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="6" width="13" height="12" rx="2" />
+      <path d="M16 10l5-3v10l-5-3" />
+    </svg>
+  );
+}
+
 export function ListIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

@@ -938,6 +938,7 @@ export default function RoundForm({
           shotType: s.shotType,
           club: s.club,
           outcome: s.outcome,
+          endLie: s.endLie,
           distance: s.distance,
           penalty: s.penalty,
         })),

@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { Button, Card } from "@/components/ui";
 import { OwnerKeyField, useOwnerKey } from "@/components/OwnerKeyField";
-import { SparkIcon, PinIcon, ChevronDown, WarningIcon } from "@/components/icons";
+import { SparkIcon, PinIcon, ChevronDown, WarningIcon, GolfBallIcon } from "@/components/icons";
+import { Markdown } from "@/components/Markdown";
 import { generateInsights, askQuestion, clearChat } from "./actions";
 import type { Insight, InsightReportView } from "./actions";
 
@@ -110,6 +111,31 @@ function InsightCard({
   );
 }
 
+// The in-flight question: shown immediately with a golf-themed thinking state.
+function PendingExchange({ question }: { question: string }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex justify-end">
+        <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-accent px-3.5 py-2 text-sm text-accent-fg">
+          {question}
+        </div>
+      </div>
+      <div className="flex items-start gap-2">
+        <CoachAvatar />
+        <div className="flex items-center gap-2 rounded-2xl rounded-tl-sm border border-border bg-surface px-3.5 py-2.5">
+          <GolfBallIcon width={16} height={16} className="animate-bounce text-accent" />
+          <span className="text-sm text-muted">Reading your stats</span>
+          <span className="flex gap-1">
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.2s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.1s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted" />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // One question + answer exchange in the chat thread.
 function ChatExchange({
   report,
@@ -126,7 +152,7 @@ function ChatExchange({
       <div className="flex items-start gap-2">
         <CoachAvatar />
         <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-border bg-surface px-3.5 py-2">
-          <p className="whitespace-pre-wrap text-sm">{report.answer}</p>
+          <Markdown text={report.answer} className="text-sm" />
           <p className="mt-1 text-[10px] uppercase tracking-wide text-muted">
             {timeAgo(report.createdAt)}
           </p>
@@ -147,6 +173,7 @@ export default function InsightsView({
   const [error, setError] = useState<string | null>(null);
   const { ownerKey, setOwnerKey } = useOwnerKey();
   const [question, setQuestion] = useState("");
+  const [pendingQ, setPendingQ] = useState<string | null>(null);
   const [genPending, startGen] = useTransition();
   const [askPending, startAsk] = useTransition();
   const [clearPending, startClear] = useTransition();
@@ -162,15 +189,21 @@ export default function InsightsView({
   }
 
   function onAsk() {
-    if (!question.trim()) return;
+    const q = question.trim();
+    if (!q) return;
     setError(null);
+    // Optimistic: show the question and a thinking bubble right away.
+    setPendingQ(q);
+    setQuestion("");
     startAsk(async () => {
-      const res = await askQuestion(question, ownerKey);
-      if (!res.ok) setError(res.error);
-      else {
+      const res = await askQuestion(q, ownerKey);
+      if (!res.ok) {
+        setError(res.error);
+        setQuestion(q); // restore so they can retry
+      } else {
         setReports((prev) => [res.data, ...prev]);
-        setQuestion("");
       }
+      setPendingQ(null);
     });
   }
 
@@ -269,7 +302,7 @@ export default function InsightsView({
             ))}
           </div>
         </div>
-      ) : (
+      ) : pendingQ ? null : (
         <div className="flex items-start gap-2">
           <CoachAvatar />
           <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-border bg-surface px-3.5 py-3">
@@ -293,9 +326,11 @@ export default function InsightsView({
         </div>
       )}
 
-      {/* Composer — sits above the thread with a blurred fade so bubbles
-          scrolling underneath dissolve into it instead of hard-overlapping. */}
-      <div className="sticky bottom-0 z-10 -mx-1 bg-gradient-to-t from-background from-60% via-background/80 to-transparent px-1 pb-3 pt-8 backdrop-blur-sm">
+      {pendingQ && <PendingExchange question={pendingQ} />}
+
+      {/* Composer — solid bar pinned to the bottom; content scrolls cleanly
+          behind it (nothing blurred above the box). */}
+      <div className="sticky bottom-0 z-10 -mx-1 bg-background px-1 pb-2 pt-2">
         <Card className="flex flex-col gap-2.5">
           {!ownerKey.trim() && (
             <div className="max-w-xs">

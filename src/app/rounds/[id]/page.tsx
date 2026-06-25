@@ -102,6 +102,7 @@ function ShotLog({ shots }: { shots: ShotView[] }) {
                 : "approach") as ShotType,
               club: s.club,
               outcome: s.result,
+              endLie: s.endLie,
               distance: s.startDistanceYards,
               penalty: s.penalty,
             })),

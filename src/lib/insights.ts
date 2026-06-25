@@ -5,6 +5,7 @@ export async function getInsightReports(
   limit = 20,
 ): Promise<InsightReportView[]> {
   const rows = await prisma.insightReport.findMany({
+    where: { kind: { in: ["question", "insight"] } },
     orderBy: { createdAt: "desc" },
     take: limit,
   });

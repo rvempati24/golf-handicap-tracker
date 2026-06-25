@@ -209,9 +209,48 @@ type TimelineShot = {
   shotType: ShotType;
   club: string | null;
   outcome: string | null;
+  endLie?: string | null;
   distance: number | null;
   penalty: boolean;
 };
+
+const LIE_NAME: Record<string, string> = {
+  fairway: "fairway",
+  rough: "rough",
+  bunker: "bunker",
+  green: "green",
+  fringe: "fringe",
+};
+
+// Directional nuance carried by the dial outcome, kept alongside the lie.
+const OUTCOME_DIRECTION: Record<string, string> = {
+  left: "left",
+  right: "right",
+  short: "short",
+  long: "long",
+  short_left: "short-left",
+  short_right: "short-right",
+  long_left: "long-left",
+  long_right: "long-right",
+};
+
+/** A concise "where it finished" phrase combining the ending lie + direction. */
+function finishedText(
+  endLie: string | null | undefined,
+  outcome: string | null | undefined,
+): string {
+  if (outcome === "holed" || endLie === "holed") return "holed";
+  if (isPenaltyOutcome(outcome)) {
+    return outcome && outcome.startsWith("ob") ? "out of bounds" : "in the water";
+  }
+  const lie = endLie ? LIE_NAME[endLie] : null;
+  const dir = outcome ? OUTCOME_DIRECTION[outcome] : null;
+  if (lie && dir) return `${lie}, ${dir}`;
+  if (lie) return lie;
+  if (dir) return dir;
+  if (outcome) return OUTCOME_PHRASE[outcome] ?? "";
+  return "";
+}
 
 /** Build a PGA-style numbered shot timeline (penalty strokes inserted inline). */
 export function buildTimeline(shots: TimelineShot[]): TimelineEntry[] {
@@ -219,15 +258,17 @@ export function buildTimeline(shots: TimelineShot[]): TimelineEntry[] {
   let stroke = 0;
   for (const s of shots) {
     stroke += 1;
-    const title = s.club ? `${TYPE_LABEL[s.shotType]} (${s.club})` : TYPE_LABEL[s.shotType];
+    // A putt is always with the putter — make that explicit rather than blank.
+    const club = s.club || (s.shotType === "putt" ? "Putter" : null);
+    const title = club ? `${TYPE_LABEL[s.shotType]} (${club})` : TYPE_LABEL[s.shotType];
     const dist =
       s.distance != null && s.distance > 0
         ? s.shotType === "putt"
           ? `${s.distance} ft`
           : `${s.distance} yds`
         : "";
-    const phrase = s.outcome ? (OUTCOME_PHRASE[s.outcome] ?? "") : "";
-    const detail = [dist, phrase].filter(Boolean).join(" ");
+    const finished = finishedText(s.endLie, s.outcome);
+    const detail = [dist, finished].filter(Boolean).join(" → ");
     entries.push({ strokeNo: stroke, kind: "shot", title, detail });
     if (s.penalty) {
       stroke += 1;

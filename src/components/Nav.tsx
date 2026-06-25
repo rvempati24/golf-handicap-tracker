@@ -10,6 +10,8 @@ import {
   ChartIcon,
   SparkIcon,
   PinIcon,
+  CalendarIcon,
+  VideoIcon,
 } from "@/components/icons";
 
 type NavLink = {
@@ -23,7 +25,9 @@ const LINKS: NavLink[] = [
   { href: "/rounds/new", label: "New", Icon: PlusIcon },
   { href: "/rounds", label: "Rounds", Icon: ListIcon },
   { href: "/stats", label: "Stats", Icon: ChartIcon },
+  { href: "/plan", label: "Plan", Icon: CalendarIcon },
   { href: "/insights", label: "Insights", Icon: SparkIcon },
+  { href: "/swing", label: "Swing", Icon: VideoIcon },
   { href: "/courses", label: "Courses", Icon: PinIcon },
 ];
 
@@ -90,22 +94,22 @@ export default function Nav() {
       </div>
 
       {/* Bottom tab bar — mobile */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-6 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-8 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:hidden">
         {LINKS.map((l) => {
           const active = isActive(pathname, l.href);
           return (
             <Link
               key={l.href}
               href={l.href}
-              className={`relative flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors ${
+              className={`relative flex flex-col items-center gap-1 py-2.5 text-[9px] font-medium transition-colors ${
                 active ? "text-accent" : "text-muted"
               }`}
             >
               {active && (
-                <span className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-accent" />
+                <span className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-accent" />
               )}
-              <l.Icon width={20} height={20} />
-              {l.label}
+              <l.Icon width={18} height={18} />
+              {l.label === "Dashboard" ? "Home" : l.label}
             </Link>
           );
         })}

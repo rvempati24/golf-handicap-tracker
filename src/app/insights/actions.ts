@@ -93,10 +93,19 @@ const INSIGHT_SCHEMA: Schema = {
 const COACH_SYSTEM = `You are an expert golf coach analyzing a single amateur golfer's performance data.
 You will receive a JSON snapshot of their stats computed under the World Handicap System.
 Ground every statement in the numbers provided — never invent stats the data doesn't contain.
-Be specific and actionable. Rank weaknesses by their likely impact on scoring (a high
-doubles-or-worse rate or poor scrambling usually costs more than a fractional GIR difference).
-Where a category is null it means the golfer hasn't tracked it — don't treat null as zero.
-Keep each field concise and free of fluff. Give 2-3 weaknesses.`;
+
+When "shotLevelStrokesGained" is present, it is the strongest signal — prioritize it. It is
+real per-shot strokes gained (Broadie PGA Tour baselines) broken down by category, by approach
+distance bucket, by starting lie, by miss direction (the dial), and putting. Use it to pinpoint
+exactly where strokes are lost (e.g. "you lose 1.9 SG/round on approaches from 175-200 and miss
+right 64% of the time", "penalties cost X/round"). Reference specific distance buckets, lies, and
+miss tendencies. perRoundVsTour compares to a tour pro; perRoundVsScratch compares to a scratch
+amateur — cite whichever is more motivating/relevant. When shot-level data is absent, fall back to
+the WHS stats and approximateStrokesGained.
+
+Be specific and actionable. Rank weaknesses by their likely impact on scoring. Where a category is
+null it means the golfer hasn't tracked it — don't treat null as zero. Keep each field concise and
+free of fluff. Give 2-3 weaknesses.`;
 
 function errorMessage(e: unknown): string {
   if (e instanceof MissingApiKeyError) return e.message;
