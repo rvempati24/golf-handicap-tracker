@@ -1,5 +1,6 @@
 import { getRounds } from "@/lib/rounds";
 import { EmptyState, LinkButton, PageHeader } from "@/components/ui";
+import { OwnerOnly } from "@/components/OwnerOnly";
 import RoundsList, { type RoundListItem } from "./RoundsList";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,11 @@ export default async function RoundsPage({
       <PageHeader
         title="Rounds"
         subtitle={`${rounds.length} round${rounds.length === 1 ? "" : "s"} logged`}
-        action={<LinkButton href="/rounds/new">+ New round</LinkButton>}
+        action={
+          <OwnerOnly>
+            <LinkButton href="/rounds/new">+ New round</LinkButton>
+          </OwnerOnly>
+        }
       />
       {error && (
         <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
@@ -37,7 +42,11 @@ export default async function RoundsPage({
         <EmptyState
           title="No rounds yet"
           description="Log your first round to start tracking."
-          action={<LinkButton href="/rounds/new">+ New round</LinkButton>}
+          action={
+            <OwnerOnly>
+              <LinkButton href="/rounds/new">+ New round</LinkButton>
+            </OwnerOnly>
+          }
         />
       ) : (
         <RoundsList rounds={items} />

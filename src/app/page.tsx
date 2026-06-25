@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getRounds } from "@/lib/rounds";
 import { getHandicapState } from "@/lib/handicap";
 import { getInsightReports } from "@/lib/insights";
@@ -14,7 +13,9 @@ import {
 } from "@/components/ui";
 import { TrendLineChart } from "@/components/charts";
 import { MIN_ROUNDS_TO_ESTABLISH } from "@/lib/whs";
-import { FlagIcon, SparkIcon, ChevronRight, PlusIcon } from "@/components/icons";
+import { FlagIcon, PlusIcon } from "@/components/icons";
+import { OwnerOnly } from "@/components/OwnerOnly";
+import DashboardInsightCard from "./DashboardInsightCard";
 
 export const dynamic = "force-dynamic";
 
@@ -35,12 +36,14 @@ export default async function Home() {
           title="No rounds yet"
           description="Log your first round to start tracking your handicap and stats."
           action={
-            <div className="flex gap-2">
-              <LinkButton href="/rounds/new">Log a round</LinkButton>
-              <LinkButton href="/courses" variant="ghost">
-                Manage courses
-              </LinkButton>
-            </div>
+            <OwnerOnly>
+              <div className="flex gap-2">
+                <LinkButton href="/rounds/new">Log a round</LinkButton>
+                <LinkButton href="/courses" variant="ghost">
+                  Manage courses
+                </LinkButton>
+              </div>
+            </OwnerOnly>
           }
         />
       </div>
@@ -62,10 +65,12 @@ export default async function Home() {
         title="Dashboard"
         subtitle="Your handicap and recent form"
         action={
-          <LinkButton href="/rounds/new">
-            <PlusIcon width={16} height={16} />
-            New round
-          </LinkButton>
+          <OwnerOnly>
+            <LinkButton href="/rounds/new">
+              <PlusIcon width={16} height={16} />
+              New round
+            </LinkButton>
+          </OwnerOnly>
         }
       />
 
@@ -150,42 +155,21 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* Latest insight */}
-      <Link href="/insights" className="group block">
-        <Card className="transition hover:border-border-strong hover:shadow-pop">
-          <div className="flex items-start gap-3">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
-              <SparkIcon width={18} height={18} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-medium">AI coaching insights</p>
-                <ChevronRight
-                  width={18}
-                  height={18}
-                  className="text-muted transition group-hover:translate-x-0.5"
-                />
-              </div>
-              {latestInsight && latestInsight.kind === "insight" ? (
-                <>
-                  <p className="mt-0.5 text-sm">{latestInsight.insight.headline}</p>
-                  {latestInsight.insight.weaknesses[0] && (
-                    <p className="mt-1 text-xs text-muted">
-                      Top focus: {latestInsight.insight.weaknesses[0].area} —{" "}
-                      {latestInsight.insight.weaknesses[0].impactSummary}
-                    </p>
-                  )}
-                </>
-              ) : (
-                <p className="mt-0.5 text-sm text-muted">
-                  Generate weaknesses, what&apos;s improving, and practice
-                  priorities from your data.
-                </p>
-              )}
-            </div>
-          </div>
-        </Card>
-      </Link>
+      {/* Latest insight — only routes into Insights when owner-unlocked. */}
+      <DashboardInsightCard
+        headline={
+          latestInsight && latestInsight.kind === "insight"
+            ? latestInsight.insight.headline
+            : null
+        }
+        topFocus={
+          latestInsight &&
+          latestInsight.kind === "insight" &&
+          latestInsight.insight.weaknesses[0]
+            ? `${latestInsight.insight.weaknesses[0].area} — ${latestInsight.insight.weaknesses[0].impactSummary}`
+            : null
+        }
+      />
     </div>
   );
 }

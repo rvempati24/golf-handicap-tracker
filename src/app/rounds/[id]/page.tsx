@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getRound } from "@/lib/rounds";
-import { Button, Card, PageHeader } from "@/components/ui";
-import { OwnerKeyHiddenInput } from "@/components/OwnerKeyField";
+import { Card, PageHeader } from "@/components/ui";
 import { toParLabel } from "@/lib/scoring";
-import { deleteRound } from "../actions";
 import type { HoleResultView, ShotView } from "@/lib/rounds";
 import { buildTimeline, type ShotType } from "@/lib/shots";
+import RoundOwnerActions from "./RoundOwnerActions";
 
 export const dynamic = "force-dynamic";
 
@@ -261,18 +260,7 @@ export default async function RoundDetailPage({
         </section>
       )}
 
-      <div className="flex gap-2">
-        <Link href={`/rounds/${round.id}/edit`}>
-          <Button variant="ghost">Edit round</Button>
-        </Link>
-        <form action={deleteRound}>
-          <OwnerKeyHiddenInput />
-          <input type="hidden" name="id" value={round.id} />
-          <Button variant="danger" type="submit">
-            Delete
-          </Button>
-        </form>
-      </div>
+      <RoundOwnerActions roundId={round.id} />
     </div>
   );
 }
