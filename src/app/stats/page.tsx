@@ -6,6 +6,7 @@ import {
   computeTrend,
   ENABLE_STROKES_GAINED,
 } from "@/lib/stats";
+import { computeShotStrokesGained } from "@/lib/strokes-gained";
 import { EmptyState, LinkButton, PageHeader } from "@/components/ui";
 import StatsView from "./StatsView";
 
@@ -33,6 +34,11 @@ export default async function StatsPage() {
     last20: computeStrokesGained(windows.last20),
     allTime: computeStrokesGained(windows.allTime),
   };
+  const shotSg = {
+    last5: computeShotStrokesGained(roundsDesc.slice(0, 5)),
+    last20: computeShotStrokesGained(roundsDesc.slice(0, 20)),
+    allTime: computeShotStrokesGained(roundsDesc),
+  };
 
   const indexByDate = new Map(hcp.trend.map((t) => [t.date, t.index]));
   const roundsAsc = [...roundsDesc].reverse();
@@ -48,6 +54,7 @@ export default async function StatsPage() {
       <StatsView
         windows={windows}
         strokesGained={strokesGained}
+        shotSg={shotSg}
         trend={trend}
         enableStrokesGained={ENABLE_STROKES_GAINED}
       />

@@ -74,6 +74,10 @@ function fit18(arr: unknown, fallback: number): number[] {
 }
 
 export async function extractScorecard(formData: FormData): Promise<ExtractResult> {
+  if (!isOwnerKeyValid(formOwnerKey(formData))) {
+    return { ok: false, error: ownerKeyError() };
+  }
+
   const file = formData.get("image");
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: "Please choose a scorecard photo." };

@@ -11,6 +11,7 @@ import {
   MissingApiKeyError,
   COACH_MODEL,
 } from "@/lib/ai";
+import { isOwnerKeyValid, ownerKeyError } from "@/lib/owner-key";
 import { MIN_ROUNDS_TO_ESTABLISH } from "@/lib/whs";
 
 export type Insight = {
@@ -109,7 +110,11 @@ function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : "Something went wrong generating insights.";
 }
 
-export async function generateInsights(): Promise<ActionResult<InsightReportView>> {
+export async function generateInsights(
+  ownerKey: string,
+): Promise<ActionResult<InsightReportView>> {
+  if (!isOwnerKeyValid(ownerKey)) return { ok: false, error: ownerKeyError() };
+
   const [rounds, hcp] = await Promise.all([getRounds(), getHandicapState()]);
   if (rounds.length < MIN_ROUNDS_TO_ESTABLISH) {
     return {
@@ -163,7 +168,10 @@ export async function generateInsights(): Promise<ActionResult<InsightReportView
 
 export async function askQuestion(
   question: string,
+  ownerKey: string,
 ): Promise<ActionResult<InsightReportView>> {
+  if (!isOwnerKeyValid(ownerKey)) return { ok: false, error: ownerKeyError() };
+
   const q = question.trim();
   if (!q) return { ok: false, error: "Please enter a question." };
   if (q.length > 500) return { ok: false, error: "Question is too long." };

@@ -3,7 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button, Card } from "@/components/ui";
-import { OwnerKeyField } from "@/components/OwnerKeyField";
+import { OwnerKeyField, useOwnerKey } from "@/components/OwnerKeyField";
 import { FlagIcon, PlusIcon, TargetIcon } from "@/components/icons";
 import { HOLE_COUNT } from "@/lib/holes";
 import { extractScorecard, type ScorecardCourseState } from "./actions";
@@ -167,6 +167,7 @@ function NumberGrid({
 
 export default function ScorecardImportClient({ action }: Props) {
   const [state, formAction] = useActionState(action, { ok: false });
+  const { ownerKey, setOwnerKey } = useOwnerKey();
   const [parsed, setParsed] = useState<ParsedScorecard>(emptyParsed);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [rawText, setRawText] = useState("");
@@ -198,6 +199,7 @@ export default function ScorecardImportClient({ action }: Props) {
       // Primary path: Gemini 2.5 Flash vision → structured fields.
       const fd = new FormData();
       fd.append("image", file);
+      fd.append("ownerKey", ownerKey);
       const res = await extractScorecard(fd);
       if (res.ok) {
         setRawText("");
@@ -239,7 +241,7 @@ export default function ScorecardImportClient({ action }: Props) {
     <form action={formAction} className="flex flex-col gap-4">
       <Card className="grid gap-4 lg:grid-cols-[20rem_1fr]">
         <div className="flex flex-col gap-3">
-          <OwnerKeyField />
+          <OwnerKeyField value={ownerKey} onValueChange={setOwnerKey} />
           <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-background px-4 py-8 text-center transition hover:border-border-strong">
             <PlusIcon width={22} height={22} className="text-accent" />
             <span className="text-sm font-medium">Upload empty scorecard photo</span>

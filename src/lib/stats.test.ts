@@ -43,6 +43,7 @@ function round(holes: HoleResultView[]): RoundView {
     totalStrokes: holes.reduce((a, h) => a + h.strokes, 0),
     adjustedGrossScore: null,
     scoreDifferential: null,
+    yardages: Array(18).fill(null),
     holes,
     shots: [],
   };

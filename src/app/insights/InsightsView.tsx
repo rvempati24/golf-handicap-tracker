@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button, Card } from "@/components/ui";
+import { OwnerKeyField, useOwnerKey } from "@/components/OwnerKeyField";
 import { WarningIcon } from "@/components/icons";
 import { generateInsights, askQuestion } from "./actions";
 import type { Insight, InsightReportView } from "./actions";
@@ -105,6 +106,7 @@ export default function InsightsView({
 }) {
   const [reports, setReports] = useState(initialReports);
   const [error, setError] = useState<string | null>(null);
+  const { ownerKey, setOwnerKey } = useOwnerKey();
   const [question, setQuestion] = useState("");
   const [genPending, startGen] = useTransition();
   const [askPending, startAsk] = useTransition();
@@ -112,7 +114,7 @@ export default function InsightsView({
   function onGenerate() {
     setError(null);
     startGen(async () => {
-      const res = await generateInsights();
+      const res = await generateInsights(ownerKey);
       if (!res.ok) setError(res.error);
       else setReports((prev) => [res.data, ...prev]);
     });
@@ -121,7 +123,7 @@ export default function InsightsView({
   function onAsk() {
     setError(null);
     startAsk(async () => {
-      const res = await askQuestion(question);
+      const res = await askQuestion(question, ownerKey);
       if (!res.ok) setError(res.error);
       else {
         setReports((prev) => [res.data, ...prev]);
@@ -157,14 +159,23 @@ export default function InsightsView({
         </Card>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={onGenerate} disabled={genPending || !hasApiKey}>
-          {genPending ? "Analyzing your game…" : "Generate fresh insights"}
-        </Button>
-        <span className="text-xs text-muted">
-          Uses your stored rounds and stats. Each run is saved below.
-        </span>
-      </div>
+      <Card className="flex flex-col gap-3">
+        <div className="max-w-xs">
+          <OwnerKeyField value={ownerKey} onValueChange={setOwnerKey} />
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            onClick={onGenerate}
+            disabled={genPending || !hasApiKey || !ownerKey.trim()}
+          >
+            {genPending ? "Analyzing your game…" : "Generate fresh insights"}
+          </Button>
+          <span className="text-xs text-muted">
+            The owner key is required so only you can spend the AI quota. Uses
+            your stored rounds and stats; each run is saved below.
+          </span>
+        </div>
+      </Card>
 
       {error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
@@ -189,7 +200,7 @@ export default function InsightsView({
         <div>
           <Button
             onClick={onAsk}
-            disabled={askPending || !hasApiKey || !question.trim()}
+            disabled={askPending || !hasApiKey || !ownerKey.trim() || !question.trim()}
           >
             {askPending ? "Thinking…" : "Ask"}
           </Button>

@@ -6,6 +6,8 @@ import { TrendLineChart } from "@/components/charts";
 import { WarningIcon } from "@/components/icons";
 import { fmtNum, fmtPct, fmtSigned } from "@/lib/format";
 import type { StatsSummary, StrokesGained, TrendPoint } from "@/lib/stats";
+import type { ShotSgReport } from "@/lib/strokes-gained";
+import AdvancedStrokesGained from "./AdvancedStrokesGained";
 
 type WindowKey = "last5" | "last20" | "allTime";
 const WINDOW_LABELS: Record<WindowKey, string> = {
@@ -48,11 +50,13 @@ function StatRow({
 export default function StatsView({
   windows,
   strokesGained,
+  shotSg,
   trend,
   enableStrokesGained,
 }: {
   windows: Record<WindowKey, StatsSummary>;
   strokesGained: Record<WindowKey, StrokesGained | null>;
+  shotSg: Record<WindowKey, ShotSgReport | null>;
   trend: TrendPoint[];
   enableStrokesGained: boolean;
 }) {
@@ -62,6 +66,7 @@ export default function StatsView({
 
   const s = windows[win];
   const sg = strokesGained[win];
+  const sgReport = shotSg[win];
   const m = METRICS[metric];
 
   const chartData = trend
@@ -175,9 +180,13 @@ export default function StatsView({
         </Card>
       </div>
 
-      {/* Strokes Gained (approx) */}
-      {enableStrokesGained && sg && (
-        <Card>
+      {/* Real shot-level Strokes Gained takes precedence when shot data exists. */}
+      {sgReport ? (
+        <AdvancedStrokesGained report={sgReport} />
+      ) : (
+        enableStrokesGained &&
+        sg && (
+          <Card>
           <div className="mb-2 flex items-center justify-between">
             <h2 className="font-medium">Strokes Gained (approximation)</h2>
             <span className="text-xs font-semibold tabular-nums">
@@ -208,7 +217,8 @@ export default function StatsView({
               is directional, not exact.
             </span>
           </p>
-        </Card>
+          </Card>
+        )
       )}
 
       {/* Trends */}

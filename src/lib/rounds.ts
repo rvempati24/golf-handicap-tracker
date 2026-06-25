@@ -1,4 +1,20 @@
 import { prisma } from "@/lib/prisma";
+import { HOLE_COUNT } from "@/lib/holes";
+
+/** Parse a JSON yardage array into 18 entries, using null for missing/zero. */
+function parseYardages(json: string | null | undefined): (number | null)[] {
+  if (!json) return Array(HOLE_COUNT).fill(null);
+  try {
+    const parsed = JSON.parse(json);
+    if (!Array.isArray(parsed)) return Array(HOLE_COUNT).fill(null);
+    return Array.from({ length: HOLE_COUNT }, (_, i) => {
+      const v = parsed[i];
+      return typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null;
+    });
+  } catch {
+    return Array(HOLE_COUNT).fill(null);
+  }
+}
 
 export type HoleResultView = {
   holeNumber: number;
@@ -45,6 +61,8 @@ export type RoundView = {
   totalStrokes: number | null;
   adjustedGrossScore: number | null;
   scoreDifferential: number | null;
+  /** Per-hole yardages for the tee played (null where unknown). */
+  yardages: (number | null)[];
   holes: HoleResultView[];
   shots: ShotView[];
 };
@@ -68,7 +86,13 @@ function toRoundView(r: {
   adjustedGrossScore: number | null;
   scoreDifferential: number | null;
   course: { name: string };
-  teeSet: { name: string; courseRating: number; slopeRating: number; par: number };
+  teeSet: {
+    name: string;
+    courseRating: number;
+    slopeRating: number;
+    par: number;
+    yardages: string | null;
+  };
   holes: HoleResultView[];
   shots: ShotView[];
 }): RoundView {
@@ -88,6 +112,7 @@ function toRoundView(r: {
     totalStrokes: r.totalStrokes,
     adjustedGrossScore: r.adjustedGrossScore,
     scoreDifferential: r.scoreDifferential,
+    yardages: parseYardages(r.teeSet.yardages),
     holes: r.holes,
     shots: r.shots,
   };
