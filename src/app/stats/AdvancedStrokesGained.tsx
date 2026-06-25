@@ -2,6 +2,7 @@ import { Card } from "@/components/ui";
 import { fmtNum, fmtPct, fmtSigned } from "@/lib/format";
 import { SG_CATEGORY_LABEL, type ShotSgReport } from "@/lib/strokes-gained";
 import type { MissProfile } from "@/lib/strokes-gained";
+import { BENCHMARK_LABEL } from "@/lib/sg-baseline";
 
 function sgColor(v: number | null): string {
   if (v == null) return "text-muted";
@@ -69,7 +70,9 @@ export default function AdvancedStrokesGained({
       {/* Category breakdown (real, shot-level) */}
       <Card>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-medium">Strokes Gained — shot by shot</h2>
+          <h2 className="font-medium">
+            Strokes Gained vs {BENCHMARK_LABEL[report.benchmark]} — shot by shot
+          </h2>
           <span className="text-xs font-semibold tabular-nums">
             Total <span className={sgColor(report.totalPerRound)}>{fmtSigned(report.totalPerRound)}</span> / round
           </span>
@@ -81,10 +84,22 @@ export default function AdvancedStrokesGained({
           <SgStat label={SG_CATEGORY_LABEL.putting} value={cat("putting")} />
         </div>
         <p className="mt-3 text-xs text-muted">
-          Per-round strokes gained vs. the PGA TOUR benchmark (Broadie, 2003–2010
-          ShotLink). Computed from your shot-by-shot data across{" "}
-          {report.roundsWithShots} round{report.roundsWithShots === 1 ? "" : "s"}.
-          Positive means you beat tour average from those spots.
+          {report.benchmark === "tour" ? (
+            <>
+              Per-round strokes gained vs. the PGA TOUR shot-level benchmark
+              (Broadie, ShotLink) — the industry-standard reference, stable across
+              eras.
+            </>
+          ) : (
+            <>
+              Per-round strokes gained vs. a scratch (0-handicap) golfer — modeled
+              from the tour benchmark plus public Arccos / Lou Stagner scratch
+              data. Indicative, not measured per-distance data.
+            </>
+          )}{" "}
+          Computed from your shot-by-shot data across {report.roundsWithShots}{" "}
+          round{report.roundsWithShots === 1 ? "" : "s"}. Positive means you beat
+          that benchmark from those spots.
         </p>
       </Card>
 

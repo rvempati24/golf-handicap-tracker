@@ -7,6 +7,7 @@ import { WarningIcon } from "@/components/icons";
 import { fmtNum, fmtPct, fmtSigned } from "@/lib/format";
 import type { StatsSummary, StrokesGained, TrendPoint } from "@/lib/stats";
 import type { ShotSgReport } from "@/lib/strokes-gained";
+import { BENCHMARK_LABEL, type Benchmark } from "@/lib/sg-baseline";
 import AdvancedStrokesGained from "./AdvancedStrokesGained";
 
 type WindowKey = "last5" | "last20" | "allTime";
@@ -56,17 +57,18 @@ export default function StatsView({
 }: {
   windows: Record<WindowKey, StatsSummary>;
   strokesGained: Record<WindowKey, StrokesGained | null>;
-  shotSg: Record<WindowKey, ShotSgReport | null>;
+  shotSg: Record<Benchmark, Record<WindowKey, ShotSgReport | null>>;
   trend: TrendPoint[];
   enableStrokesGained: boolean;
 }) {
   const [win, setWin] = useState<WindowKey>("last20");
+  const [benchmark, setBenchmark] = useState<Benchmark>("scratch");
   const [metric, setMetric] = useState<MetricKey>("index");
   const [range, setRange] = useState<number>(20);
 
   const s = windows[win];
   const sg = strokesGained[win];
-  const sgReport = shotSg[win];
+  const sgReport = shotSg[benchmark][win];
   const m = METRICS[metric];
 
   const chartData = trend
@@ -182,7 +184,25 @@ export default function StatsView({
 
       {/* Real shot-level Strokes Gained takes precedence when shot data exists. */}
       {sgReport ? (
-        <AdvancedStrokesGained report={sgReport} />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium">Compare against</span>
+            {(["scratch", "tour"] as Benchmark[]).map((b) => (
+              <button
+                key={b}
+                onClick={() => setBenchmark(b)}
+                className={`rounded-full border px-3 py-1 text-sm font-medium ${
+                  benchmark === b
+                    ? "border-accent bg-accent text-accent-fg"
+                    : "border-border text-muted"
+                }`}
+              >
+                {BENCHMARK_LABEL[b]}
+              </button>
+            ))}
+          </div>
+          <AdvancedStrokesGained report={sgReport} />
+        </div>
       ) : (
         enableStrokesGained &&
         sg && (

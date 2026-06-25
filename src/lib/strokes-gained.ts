@@ -17,7 +17,7 @@
 // skipped so partial data never produces misleading numbers.
 
 import type { RoundView, ShotView } from "@/lib/rounds";
-import { expectedStrokes, type BaselineLie } from "@/lib/sg-baseline";
+import { expectedStrokes, type BaselineLie, type Benchmark } from "@/lib/sg-baseline";
 import { AROUND_GREEN_YARDS } from "@/lib/shots";
 
 export type SgCategory = "offTheTee" | "approach" | "aroundGreen" | "putting";
@@ -104,6 +104,7 @@ export function computeHoleSG(
   shots: ShotView[],
   holeYardage: number | null,
   par: number,
+  benchmark: Benchmark = "tour",
 ): SgShot[] {
   if (shots.length === 0) return [];
   const ordered = [...shots].sort((a, b) => a.shotNumber - b.shotNumber);
@@ -120,7 +121,7 @@ export function computeHoleSG(
       const feet = s.startDistanceYards ?? 0;
       states.push({
         lie,
-        expected: expectedStrokes("green", feet),
+        expected: expectedStrokes("green", feet, benchmark),
         yards: feet * YARDS_PER_FOOT,
         feet,
       });
@@ -139,7 +140,7 @@ export function computeHoleSG(
 
     states.push({
       lie,
-      expected: expectedStrokes(lie, yards),
+      expected: expectedStrokes(lie, yards, benchmark),
       yards,
       feet: null,
     });
@@ -174,7 +175,10 @@ export function computeHoleSG(
 }
 
 /** All scored shots for a round (empty if the round has no usable shot data). */
-export function computeRoundSG(round: RoundView): SgShot[] {
+export function computeRoundSG(
+  round: RoundView,
+  benchmark: Benchmark = "tour",
+): SgShot[] {
   if (round.shots.length === 0) return [];
   const byHole = new Map<number, ShotView[]>();
   for (const s of round.shots) {
@@ -186,7 +190,7 @@ export function computeRoundSG(round: RoundView): SgShot[] {
   for (const [holeNumber, holeShots] of byHole) {
     const par = round.holes.find((h) => h.holeNumber === holeNumber)?.par ?? 4;
     const yardage = round.yardages[holeNumber - 1] ?? null;
-    out.push(...computeHoleSG(holeShots, yardage, par));
+    out.push(...computeHoleSG(holeShots, yardage, par, benchmark));
   }
   return out;
 }
@@ -239,6 +243,7 @@ export type PuttingBucket = {
 };
 
 export type ShotSgReport = {
+  benchmark: Benchmark;
   roundsWithShots: number;
   totalShots: number;
   totalPerRound: number;
@@ -300,10 +305,13 @@ const round2 = (x: number) => Math.round(x * 100) / 100;
  * Aggregate real strokes gained across rounds. Returns null when none of the
  * supplied rounds carry usable shot-level data.
  */
-export function computeShotStrokesGained(rounds: RoundView[]): ShotSgReport | null {
+export function computeShotStrokesGained(
+  rounds: RoundView[],
+  benchmark: Benchmark = "tour",
+): ShotSgReport | null {
   const perRoundShots: SgShot[][] = [];
   for (const r of rounds) {
-    const shots = computeRoundSG(r);
+    const shots = computeRoundSG(r, benchmark);
     if (shots.length > 0) perRoundShots.push(shots);
   }
   const roundsWithShots = perRoundShots.length;
@@ -397,6 +405,7 @@ export function computeShotStrokesGained(rounds: RoundView[]): ShotSgReport | nu
   const penaltyStrokes = all.filter((s) => s.penalty).length;
 
   return {
+    benchmark,
     roundsWithShots,
     totalShots: all.length,
     totalPerRound,

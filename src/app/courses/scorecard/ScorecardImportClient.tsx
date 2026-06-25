@@ -52,6 +52,31 @@ function SubmitButton() {
   );
 }
 
+// Downscale a photo in the browser before uploading so the Server Action
+// payload stays small (faster upload, cheaper OCR). Falls back to the original
+// file if anything goes wrong.
+async function downscaleImage(file: File, maxDim = 1800): Promise<File> {
+  try {
+    if (!file.type.startsWith("image/")) return file;
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    if (scale >= 1) return file; // already small enough
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.85),
+    );
+    if (!blob) return file;
+    return new File([blob], "scorecard.jpg", { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
 function numbersFromLine(line: string) {
   return [...line.matchAll(/\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
 }
@@ -197,8 +222,9 @@ export default function ScorecardImportClient({ action }: Props) {
     setRunning(true);
     try {
       // Primary path: Gemini 2.5 Flash vision → structured fields.
+      const upload = await downscaleImage(file);
       const fd = new FormData();
-      fd.append("image", file);
+      fd.append("image", upload);
       fd.append("ownerKey", ownerKey);
       const res = await extractScorecard(fd);
       if (res.ok) {

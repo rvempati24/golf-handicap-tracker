@@ -218,4 +218,13 @@ describe("computeShotStrokesGained", () => {
     const bare: RoundView = { ...round, shots: [] };
     expect(computeShotStrokesGained([bare])).toBeNull();
   });
+
+  it("scores higher SG against scratch than against tour", () => {
+    const tour = computeShotStrokesGained([round], "tour");
+    const scratch = computeShotStrokesGained([round], "scratch");
+    expect(tour!.benchmark).toBe("tour");
+    expect(scratch!.benchmark).toBe("scratch");
+    // The scratch benchmark is easier to beat, so the same shots gain more.
+    expect(scratch!.totalPerRound).toBeGreaterThan(tour!.totalPerRound);
+  });
 });

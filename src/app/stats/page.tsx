@@ -35,9 +35,16 @@ export default async function StatsPage() {
     allTime: computeStrokesGained(windows.allTime),
   };
   const shotSg = {
-    last5: computeShotStrokesGained(roundsDesc.slice(0, 5)),
-    last20: computeShotStrokesGained(roundsDesc.slice(0, 20)),
-    allTime: computeShotStrokesGained(roundsDesc),
+    tour: {
+      last5: computeShotStrokesGained(roundsDesc.slice(0, 5), "tour"),
+      last20: computeShotStrokesGained(roundsDesc.slice(0, 20), "tour"),
+      allTime: computeShotStrokesGained(roundsDesc, "tour"),
+    },
+    scratch: {
+      last5: computeShotStrokesGained(roundsDesc.slice(0, 5), "scratch"),
+      last20: computeShotStrokesGained(roundsDesc.slice(0, 20), "scratch"),
+      allTime: computeShotStrokesGained(roundsDesc, "scratch"),
+    },
   };
 
   const indexByDate = new Map(hcp.trend.map((t) => [t.date, t.index]));

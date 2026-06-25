@@ -15,6 +15,14 @@
 
 export type BaselineLie = "tee" | "fairway" | "rough" | "sand" | "recovery" | "green";
 
+// Which population's expected strokes to compare against.
+export type Benchmark = "tour" | "scratch";
+
+export const BENCHMARK_LABEL: Record<Benchmark, string> = {
+  tour: "PGA Tour",
+  scratch: "Scratch",
+};
+
 // Table 9 rows. `null` where Broadie reports no value (tee shots < 100 yds).
 // [distanceYards, tee, fairway, rough, sand, recovery]
 const LONG_GAME: [number, number | null, number, number, number, number][] = [
@@ -106,9 +114,52 @@ function interp(table: [number, number][], x: number): number {
   return last[1];
 }
 
+// ── Scratch-golfer model ─────────────────────────────────────────────────────
+// A complete, publicly-tabulated scratch (0-handicap) expected-strokes table by
+// distance and lie is not openly available. Instead the scratch benchmark is
+// modeled as the tour benchmark plus a documented "scratch penalty" — the extra
+// strokes a scratch amateur averages from the same spot — anchored to public
+// Arccos / Lou Stagner figures:
+//   • ~3.04 strokes to hole out from 100 yds fairway (tour 2.80 → +0.24)
+//   • ~56% GIR and ~26 ft average GIR proximity (vs tour ~67% / ~footage)
+//   • ~259-yd driving vs ~290 tour, ~51% fairways
+//   • short putting nearly tour-level; long lag putting slightly worse
+// The penalty grows with distance and with lie difficulty. It is a transparent
+// model, not measured per-distance data — treat scratch numbers as indicative.
+
+function scratchPenaltyYards(
+  lie: Exclude<BaselineLie, "green">,
+  d: number,
+): number {
+  // Base approach penalty from the fairway, anchored at ~+0.20 around 100 yds
+  // and widening with distance.
+  const fairway = 0.18 + 0.0012 * Math.max(0, d - 80);
+  switch (lie) {
+    case "fairway":
+      return fairway;
+    case "rough":
+      return fairway + 0.1;
+    case "sand":
+      return fairway + 0.14;
+    case "recovery":
+      return fairway + 0.25;
+    case "tee":
+      // Driving gap (distance + accuracy); par-3 tee shots (<100) play like an
+      // approach, so reuse the fairway penalty there.
+      return d < 100 ? fairway : 0.15 + 0.0012 * Math.max(0, d - 100);
+  }
+}
+
+function scratchPenaltyPutt(feet: number): number {
+  // Scratch make rates track tour closely on short putts; the gap shows up on
+  // lag putting and 3-putt avoidance.
+  return Math.min(0.12, 0.004 * Math.max(0, feet));
+}
+
 /** Expected putts to hole out from `feet` on the green. */
-export function expectedPutts(feet: number): number {
-  return interp(PUTTING, Math.max(0, feet));
+export function expectedPutts(feet: number, benchmark: Benchmark = "tour"): number {
+  const base = interp(PUTTING, Math.max(0, feet));
+  return benchmark === "scratch" ? base + scratchPenaltyPutt(feet) : base;
 }
 
 /**
@@ -118,6 +169,7 @@ export function expectedPutts(feet: number): number {
 export function expectedStrokesYards(
   lie: Exclude<BaselineLie, "green">,
   distanceYards: number,
+  benchmark: Benchmark = "tour",
 ): number {
   // Tour data has no teed-shot benchmark under 100 yds (those are par-3 tee
   // shots that play like a fairway approach) — fall back to the fairway curve.
@@ -127,7 +179,10 @@ export function expectedStrokesYards(
     const v = row[col];
     if (v != null) table.push([row[0], v]);
   }
-  return interp(table, Math.max(0, distanceYards));
+  const base = interp(table, Math.max(0, distanceYards));
+  return benchmark === "scratch"
+    ? base + scratchPenaltyYards(lie, Math.max(0, distanceYards))
+    : base;
 }
 
 /**
@@ -137,7 +192,8 @@ export function expectedStrokesYards(
 export function expectedStrokes(
   lie: BaselineLie,
   distance: number,
+  benchmark: Benchmark = "tour",
 ): number {
-  if (lie === "green") return expectedPutts(distance);
-  return expectedStrokesYards(lie, distance);
+  if (lie === "green") return expectedPutts(distance, benchmark);
+  return expectedStrokesYards(lie, distance, benchmark);
 }
